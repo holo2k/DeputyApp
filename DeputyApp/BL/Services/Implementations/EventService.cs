@@ -39,7 +39,7 @@ public class EventService : IEventService
 
     public async Task<IEnumerable<Event>> GetMyUpcomingAsync(Guid userId, DateTimeOffset from, DateTimeOffset to)
     {
-        var events = await _uow.Events.GetUpcomingAsync(from, to);
-        return events.Where(x => x.OrganizerId == userId);
+        var events = await _uow.Events.GetMyUpcomingAsync(from, to, userId);
+        return events;
     }
 }
