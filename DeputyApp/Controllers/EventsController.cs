@@ -31,6 +31,28 @@ public class EventsController(IEventService events, IAuthService authService) : 
     }
 
     /// <summary>
+    ///     Получить список предстоящих событий в указанном диапазоне дат.
+    /// </summary>
+    /// <remarks>
+    ///     Метод возвращает события, которые начинаются или заканчиваются в указанном интервале времени.
+    /// </remarks>
+    /// <param name="from">Начальная дата диапазона.</param>
+    /// <param name="to">Конечная дата диапазона.</param>
+    /// <returns>Список событий в формате <see cref="EventDto" />.</returns>
+    [HttpGet("my-upcoming")]
+    public async Task<IActionResult> GetMyUpcoming([FromQuery] DateTimeOffset from, [FromQuery] DateTimeOffset to)
+    {
+        var userId = authService.GetCurrentUserId();
+        if (userId == Guid.Empty) return Unauthorized();
+
+        var list = await events.GetMyUpcomingAsync(userId, from, to);
+
+        var dtoList = list.Select(x => x.Map()).ToList();
+
+        return Ok(dtoList);
+    }
+
+    /// <summary>
     ///     Создать новое событие (только для авторизованных пользователей).
     /// </summary>
     /// <remarks>

@@ -79,6 +79,7 @@ public class PostsController(IPostService posts, IAuthService authService) : Con
             created.PublishedAt
         );
 
+        await posts.PublishAsync(resp.Id); //опубликовать?
         return CreatedAtAction(nameof(GetById), new { id = resp.Id }, resp);
     }
 

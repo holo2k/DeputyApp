@@ -10,7 +10,10 @@ public class AnalyticsService(IUnitOfWork uow) : IAnalyticsService
     {
         var e = new AnalyticsEvent
         {
-            Id = Guid.NewGuid(), EventType = eventType, UserId = userId, Timestamp = DateTimeOffset.UtcNow,
+            Id = Guid.NewGuid(),
+            EventType = eventType,
+            UserId = userId,
+            Timestamp = DateTimeOffset.UtcNow,
             PayloadJson = payloadJson
         };
         await uow.Analytics.AddEventAsync(e);
