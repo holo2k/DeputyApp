@@ -30,6 +30,7 @@ public class PostService : IPostService
     {
         post.Id = Guid.NewGuid();
         post.CreatedAt = DateTimeOffset.UtcNow;
+        post.PublishedAt = null;
         await _uow.Posts.AddAsync(post);
         await _uow.SaveChangesAsync();
         return post;

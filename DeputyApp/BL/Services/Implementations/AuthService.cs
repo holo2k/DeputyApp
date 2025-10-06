@@ -1,13 +1,14 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using DeputyApp.BL.Dtos;
 using DeputyApp.BL.Encrypt;
 using DeputyApp.BL.Services.Abstractions;
 using DeputyApp.DAL.UnitOfWork;
 using DeputyApp.Entities;
 using DeputyApp.Middleware;
 using Microsoft.IdentityModel.Tokens;
+
+kens;
 
 namespace DeputyApp.BL.Services.Implementations;
 
@@ -135,6 +136,7 @@ public class AuthService : IAuthService
     {
         if (id != Guid.Empty) return await _uow.Users.GetByIdAsync(id!);
 
-        return null;
+        return nul
+
     }
 }

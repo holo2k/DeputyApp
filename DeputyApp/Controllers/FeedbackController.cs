@@ -1,5 +1,8 @@
 ﻿using DeputyApp.BL.Services.Abstractions;
+using DeputyApp.Controllers.Dtos;
+using DeputyApp.Controllers.Requests;
 using DeputyApp.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DeputyApp.Controllers;
@@ -8,26 +11,83 @@ namespace DeputyApp.Controllers;
 [Route("api/[controller]")]
 public class FeedbackController : ControllerBase
 {
+    private readonly IAuthService _authService;
     private readonly IFeedbackService _feedback;
 
-    public FeedbackController(IFeedbackService feedback)
+    public FeedbackController(IFeedbackService feedback, IAuthService authService)
     {
         _feedback = feedback;
+        _authService = authService;
     }
 
-    /// <summary>Send feedback (open).</summary>
+    /// <summary>
+    ///     Отправка обратной связи пользователем.
+    /// </summary>
+    /// <remarks>
+    ///     Этот метод позволяет авторизованному пользователю отправить обратную связь.
+    ///     В теле запроса указываются имя, email и сообщение.
+    ///     Возвращается DTO созданного отзыва с его идентификатором и датой создания.
+    /// </remarks>
+    /// <param name="dto">Данные обратной связи (Name, Email, Message).</param>
+    /// <returns>Созданный отзыв в формате <see cref="FeedbackDto" />.</returns>
+    /// <response code="201">Обратная связь успешно создана.</response>
+    /// <response code="401">Пользователь не авторизован.</response>
     [HttpPost]
-    public async Task<IActionResult> Send([FromBody] Feedback fb)
+    public async Task<IActionResult> Send([FromBody] FeedbackRequest dto)
     {
-        var f = await _feedback.CreateAsync(fb);
-        return CreatedAtAction(nameof(Send), new { id = f.Id }, f);
+        var userId = _authService.GetCurrentUserId();
+        if (userId == Guid.Empty) return Unauthorized();
+
+        var fb = new Feedback
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            Name = dto.Name,
+            Email = dto.Email,
+            Message = dto.Message,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        var created = await _feedback.CreateAsync(fb);
+
+        var response = new FeedbackDto
+        {
+            Id = created.Id,
+            Name = created.Name,
+            Email = created.Email,
+            Message = created.Message,
+            CreatedAt = created.CreatedAt
+        };
+
+        return CreatedAtAction(nameof(Send), new { id = response.Id }, response);
     }
 
-    /// <summary>Get recent feedbacks (admin).</summary>
+    /// <summary>
+    ///     Получение последних отзывов (админский метод).
+    /// </summary>
+    /// <remarks>
+    ///     Метод позволяет администраторам просмотреть последние отзывы за указанное количество дней.
+    ///     Возвращает список <see cref="FeedbackDto" /> с информацией об отзывах.
+    /// </remarks>
+    /// <param name="days">Количество дней для фильтрации отзывов (по умолчанию 30).</param>
+    /// <returns>Список последних отзывов.</returns>
+    /// <response code="200">Список отзывов успешно получен.</response>
+    /// <response code="401">Пользователь не авторизован.</response>
     [HttpGet("recent")]
+    [Authorize]
     public async Task<IActionResult> Recent([FromQuery] int days = 30)
     {
         var list = await _feedback.RecentAsync(days);
-        return Ok(list);
+
+        var dtoList = list.Select(f => new FeedbackDto
+        {
+            Id = f.Id,
+            Name = f.Name,
+            Email = f.Email,
+            Message = f.Message,
+            CreatedAt = f.CreatedAt
+        }).ToList();
+
+        return Ok(dtoList);
     }
 }

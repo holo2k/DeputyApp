@@ -1,5 +1,6 @@
-﻿using DeputyApp.BL.Dtos;
-using DeputyApp.Entities;
+﻿using DeputyApp.Entities;
+
+ties;
 
 namespace DeputyApp.BL.Services.Abstractions;
 
@@ -12,5 +13,7 @@ public interface IAuthService
     Task<User?> GetCurrentUser();
     Task<User?> GetUserById(Guid id);
     string GenerateJwtToken<T>(T user);
-    void Logout(string token);
+
+    void Logout(strin
+        token);
 }

@@ -6,6 +6,7 @@ public interface IUnitOfWork : IAsyncDisposable
 {
     IUserRepository Users { get; }
     IRoleRepository Roles { get; }
+    ICatalogRepository Catalogs { get; set; }
     IPostRepository Posts { get; }
     IEventRepository Events { get; }
     IDocumentRepository Documents { get; }
