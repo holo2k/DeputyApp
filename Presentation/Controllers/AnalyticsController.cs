@@ -1,8 +1,8 @@
 ﻿using Application.Services.Abstractions;
-using DeputyApp.Controllers.Requests;
 using Microsoft.AspNetCore.Mvc;
+using Presentation.Controllers.Requests;
 
-namespace DeputyApp.Controllers;
+namespace Presentation.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]

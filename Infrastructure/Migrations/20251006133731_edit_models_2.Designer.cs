@@ -24,7 +24,7 @@ namespace DeputyApp.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("DeputyApp.Entities.AnalyticsEvent", b =>
+            modelBuilder.Entity("Presentation.Entities.AnalyticsEvent", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -54,7 +54,7 @@ namespace DeputyApp.Migrations
                     b.ToTable("AnalyticsEvents");
                 });
 
-            modelBuilder.Entity("DeputyApp.Entities.Catalog", b =>
+            modelBuilder.Entity("Presentation.Entities.Catalog", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -79,7 +79,7 @@ namespace DeputyApp.Migrations
                     b.ToTable("Catalogs");
                 });
 
-            modelBuilder.Entity("DeputyApp.Entities.Document", b =>
+            modelBuilder.Entity("Presentation.Entities.Document", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -123,7 +123,7 @@ namespace DeputyApp.Migrations
                     b.ToTable("Documents");
                 });
 
-            modelBuilder.Entity("DeputyApp.Entities.Event", b =>
+            modelBuilder.Entity("Presentation.Entities.Event", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -163,7 +163,7 @@ namespace DeputyApp.Migrations
                     b.ToTable("Events");
                 });
 
-            modelBuilder.Entity("DeputyApp.Entities.Feedback", b =>
+            modelBuilder.Entity("Presentation.Entities.Feedback", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -194,7 +194,7 @@ namespace DeputyApp.Migrations
                     b.ToTable("Feedbacks");
                 });
 
-            modelBuilder.Entity("DeputyApp.Entities.Post", b =>
+            modelBuilder.Entity("Presentation.Entities.Post", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -231,7 +231,7 @@ namespace DeputyApp.Migrations
                     b.ToTable("Posts");
                 });
 
-            modelBuilder.Entity("DeputyApp.Entities.Role", b =>
+            modelBuilder.Entity("Presentation.Entities.Role", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -249,7 +249,7 @@ namespace DeputyApp.Migrations
                     b.ToTable("Roles");
                 });
 
-            modelBuilder.Entity("DeputyApp.Entities.User", b =>
+            modelBuilder.Entity("Presentation.Entities.User", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -286,7 +286,7 @@ namespace DeputyApp.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("DeputyApp.Entities.UserRole", b =>
+            modelBuilder.Entity("Presentation.Entities.UserRole", b =>
                 {
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
@@ -301,9 +301,9 @@ namespace DeputyApp.Migrations
                     b.ToTable("UserRoles");
                 });
 
-            modelBuilder.Entity("DeputyApp.Entities.AnalyticsEvent", b =>
+            modelBuilder.Entity("Presentation.Entities.AnalyticsEvent", b =>
                 {
-                    b.HasOne("DeputyApp.Entities.User", "User")
+                    b.HasOne("Presentation.Entities.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.SetNull);
@@ -311,13 +311,13 @@ namespace DeputyApp.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("DeputyApp.Entities.Catalog", b =>
+            modelBuilder.Entity("Presentation.Entities.Catalog", b =>
                 {
-                    b.HasOne("DeputyApp.Entities.User", "Owner")
+                    b.HasOne("Presentation.Entities.User", "Owner")
                         .WithMany()
                         .HasForeignKey("OwnerId");
 
-                    b.HasOne("DeputyApp.Entities.Catalog", "ParentCatalog")
+                    b.HasOne("Presentation.Entities.Catalog", "ParentCatalog")
                         .WithMany("Children")
                         .HasForeignKey("ParentCatalogId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -327,19 +327,19 @@ namespace DeputyApp.Migrations
                     b.Navigation("ParentCatalog");
                 });
 
-            modelBuilder.Entity("DeputyApp.Entities.Document", b =>
+            modelBuilder.Entity("Presentation.Entities.Document", b =>
                 {
-                    b.HasOne("DeputyApp.Entities.Catalog", "Catalog")
+                    b.HasOne("Presentation.Entities.Catalog", "Catalog")
                         .WithMany("Documents")
                         .HasForeignKey("CatalogId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("DeputyApp.Entities.Post", "Post")
+                    b.HasOne("Presentation.Entities.Post", "Post")
                         .WithMany("Attachments")
                         .HasForeignKey("PostId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("DeputyApp.Entities.User", "UploadedBy")
+                    b.HasOne("Presentation.Entities.User", "UploadedBy")
                         .WithMany("Documents")
                         .HasForeignKey("UploadedById")
                         .OnDelete(DeleteBehavior.SetNull);
@@ -351,9 +351,9 @@ namespace DeputyApp.Migrations
                     b.Navigation("UploadedBy");
                 });
 
-            modelBuilder.Entity("DeputyApp.Entities.Event", b =>
+            modelBuilder.Entity("Presentation.Entities.Event", b =>
                 {
-                    b.HasOne("DeputyApp.Entities.User", "Organizer")
+                    b.HasOne("Presentation.Entities.User", "Organizer")
                         .WithMany("EventsOrganized")
                         .HasForeignKey("OrganizerId")
                         .OnDelete(DeleteBehavior.SetNull);
@@ -361,9 +361,9 @@ namespace DeputyApp.Migrations
                     b.Navigation("Organizer");
                 });
 
-            modelBuilder.Entity("DeputyApp.Entities.Feedback", b =>
+            modelBuilder.Entity("Presentation.Entities.Feedback", b =>
                 {
-                    b.HasOne("DeputyApp.Entities.User", "User")
+                    b.HasOne("Presentation.Entities.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.SetNull);
@@ -371,9 +371,9 @@ namespace DeputyApp.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("DeputyApp.Entities.Post", b =>
+            modelBuilder.Entity("Presentation.Entities.Post", b =>
                 {
-                    b.HasOne("DeputyApp.Entities.User", "CreatedBy")
+                    b.HasOne("Presentation.Entities.User", "CreatedBy")
                         .WithMany("Posts")
                         .HasForeignKey("CreatedById")
                         .OnDelete(DeleteBehavior.SetNull);
@@ -381,15 +381,15 @@ namespace DeputyApp.Migrations
                     b.Navigation("CreatedBy");
                 });
 
-            modelBuilder.Entity("DeputyApp.Entities.UserRole", b =>
+            modelBuilder.Entity("Presentation.Entities.UserRole", b =>
                 {
-                    b.HasOne("DeputyApp.Entities.Role", "Role")
+                    b.HasOne("Presentation.Entities.Role", "Role")
                         .WithMany("UserRoles")
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("DeputyApp.Entities.User", "User")
+                    b.HasOne("Presentation.Entities.User", "User")
                         .WithMany("UserRoles")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -400,24 +400,24 @@ namespace DeputyApp.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("DeputyApp.Entities.Catalog", b =>
+            modelBuilder.Entity("Presentation.Entities.Catalog", b =>
                 {
                     b.Navigation("Children");
 
                     b.Navigation("Documents");
                 });
 
-            modelBuilder.Entity("DeputyApp.Entities.Post", b =>
+            modelBuilder.Entity("Presentation.Entities.Post", b =>
                 {
                     b.Navigation("Attachments");
                 });
 
-            modelBuilder.Entity("DeputyApp.Entities.Role", b =>
+            modelBuilder.Entity("Presentation.Entities.Role", b =>
                 {
                     b.Navigation("UserRoles");
                 });
 
-            modelBuilder.Entity("DeputyApp.Entities.User", b =>
+            modelBuilder.Entity("Presentation.Entities.User", b =>
                 {
                     b.Navigation("Documents");
 

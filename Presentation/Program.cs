@@ -18,7 +18,7 @@ var builder = WebApplication.CreateBuilder(args);
 var config = builder.Configuration;
 
 var conn = config.GetValue<string>("DB_CONNECTION") ??
-           "Host=postgres;Port=5432;Database=deputy;Username=postgres;Password=postgres";
+           "Host=localhost;Port=5435;Database=deputy;Username=postgres;Password=postgres";
 
 builder.Services.InitializeDatabase(conn);
 
@@ -53,9 +53,8 @@ builder.Services
             ValidateIssuerSigningKey = true,
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey =
-                new SymmetricSecurityKey(
-                    Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable("JWT_KEY")!)),
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key not configured"))),
             RoleClaimType = ClaimTypes.Role
         };
     });

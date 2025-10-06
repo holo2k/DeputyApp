@@ -1,4 +1,4 @@
-﻿namespace DeputyApp.Controllers.Requests;
+﻿namespace Presentation.Controllers.Requests;
 
 public class FeedbackRequest
 {
