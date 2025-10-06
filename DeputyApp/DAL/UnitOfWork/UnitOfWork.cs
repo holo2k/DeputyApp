@@ -11,6 +11,7 @@ public class UnitOfWork : IUnitOfWork
     public UnitOfWork(AppDbContext db)
     {
         _db = db;
+        Catalogs = new CatalogRepository(db);
         Users = new UserRepository(db);
         Roles = new RoleRepository(db);
         Posts = new PostRepository(db);
@@ -22,6 +23,7 @@ public class UnitOfWork : IUnitOfWork
 
     public IUserRepository Users { get; }
     public IRoleRepository Roles { get; }
+    public ICatalogRepository Catalogs { get; set; }
     public IPostRepository Posts { get; }
     public IEventRepository Events { get; }
     public IDocumentRepository Documents { get; }

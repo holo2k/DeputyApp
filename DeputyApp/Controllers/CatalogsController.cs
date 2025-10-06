@@ -67,7 +67,7 @@ public class CatalogsController : ControllerBase
         var userId = _authService.GetCurrentUserId();
         if (userId == Guid.Empty) return Unauthorized();
 
-        var catalogs = await _catalogService.GetByOwnerAsync(userId);
+        var catalogs = await _catalogService.GetByOwnerAsync((Guid)userId!);
         return Ok(catalogs);
     }
 

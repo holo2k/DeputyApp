@@ -3,12 +3,11 @@ using System.Security.Claims;
 using System.Text;
 using DeputyApp.BL.Encrypt;
 using DeputyApp.BL.Services.Abstractions;
+using DeputyApp.Controllers.Dtos;
 using DeputyApp.DAL.UnitOfWork;
 using DeputyApp.Entities;
 using DeputyApp.Middleware;
 using Microsoft.IdentityModel.Tokens;
-
-kens;
 
 namespace DeputyApp.BL.Services.Implementations;
 
@@ -77,12 +76,12 @@ public class AuthService : IAuthService
     {
         var id = GetCurrentUserId();
 
-        if (id != Guid.Empty) return await _uow.Users.GetByIdAsync((Guid)id!);
+        if (id != Guid.Empty) return await _uow.Users.GetByIdAsync(id!);
 
         return null;
     }
 
-    public Guid? GetCurrentUserId()
+    public Guid GetCurrentUserId()
     {
         var claimsIdentity = httpContextAccessor.HttpContext?.User.Identity as ClaimsIdentity;
         var id = Guid.Parse(claimsIdentity?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
@@ -136,7 +135,6 @@ public class AuthService : IAuthService
     {
         if (id != Guid.Empty) return await _uow.Users.GetByIdAsync(id!);
 
-        return nul
-
+        return null;
     }
 }
