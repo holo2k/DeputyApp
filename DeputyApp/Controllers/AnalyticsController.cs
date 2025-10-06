@@ -1,4 +1,4 @@
-﻿using DeputyApp.BL.Services.Abstractions;
+﻿using Application.Services.Abstractions;
 using DeputyApp.Controllers.Requests;
 using Microsoft.AspNetCore.Mvc;
 
@@ -6,15 +6,8 @@ namespace DeputyApp.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class AnalyticsController : ControllerBase
+public class AnalyticsController(IAnalyticsService analytics) : ControllerBase
 {
-    private readonly IAnalyticsService _analytics;
-
-    public AnalyticsController(IAnalyticsService analytics)
-    {
-        _analytics = analytics;
-    }
-
     /// <summary>
     ///     Отправка события аналитики (открытый API для клиентов).
     /// </summary>
@@ -27,7 +20,7 @@ public class AnalyticsController : ControllerBase
     [HttpPost("track")]
     public async Task<IActionResult> Track([FromBody] TrackRequest req)
     {
-        await _analytics.TrackAsync(req.EventType, req.UserId, req.PayloadJson);
+        await analytics.TrackAsync(req.EventType, req.UserId, req.PayloadJson);
         return Accepted();
     }
 
@@ -46,7 +39,7 @@ public class AnalyticsController : ControllerBase
     public async Task<IActionResult> Query([FromQuery] DateTimeOffset from, [FromQuery] DateTimeOffset to,
         [FromQuery] string? eventType)
     {
-        var list = await _analytics.QueryAsync(from, to, eventType);
+        var list = await analytics.QueryAsync(from, to, eventType);
         return Ok(list);
     }
 }

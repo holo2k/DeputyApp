@@ -1,7 +1,7 @@
-﻿using DeputyApp.BL.Services.Abstractions;
-using DeputyApp.Controllers.Dtos;
+﻿using Application.Dtos;
+using Application.Services.Abstractions;
 using DeputyApp.Controllers.Requests;
-using DeputyApp.Entities;
+using Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,17 +9,8 @@ namespace DeputyApp.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class FeedbackController : ControllerBase
+public class FeedbackController(IFeedbackService feedback, IAuthService authService) : ControllerBase
 {
-    private readonly IAuthService _authService;
-    private readonly IFeedbackService _feedback;
-
-    public FeedbackController(IFeedbackService feedback, IAuthService authService)
-    {
-        _feedback = feedback;
-        _authService = authService;
-    }
-
     /// <summary>
     ///     Отправка обратной связи пользователем.
     /// </summary>
@@ -35,7 +26,7 @@ public class FeedbackController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Send([FromBody] FeedbackRequest dto)
     {
-        var userId = _authService.GetCurrentUserId();
+        var userId = authService.GetCurrentUserId();
         if (userId == Guid.Empty) return Unauthorized();
 
         var fb = new Feedback
@@ -48,7 +39,7 @@ public class FeedbackController : ControllerBase
             CreatedAt = DateTimeOffset.UtcNow
         };
 
-        var created = await _feedback.CreateAsync(fb);
+        var created = await feedback.CreateAsync(fb);
 
         var response = new FeedbackDto
         {
@@ -77,7 +68,7 @@ public class FeedbackController : ControllerBase
     [Authorize]
     public async Task<IActionResult> Recent([FromQuery] int days = 30)
     {
-        var list = await _feedback.RecentAsync(days);
+        var list = await feedback.RecentAsync(days);
 
         var dtoList = list.Select(f => new FeedbackDto
         {

@@ -1,29 +1,27 @@
 using System.Reflection;
 using System.Security.Claims;
 using System.Text;
-using DeputyApp.BL.Encrypt;
-using DeputyApp.BL.Notifications;
-using DeputyApp.BL.Services;
-using DeputyApp.BL.Services.Abstractions;
-using DeputyApp.BL.Storage;
-using DeputyApp.DAL;
+using Application.Notifications;
+using Application.Services;
+using Application.Services.Abstractions;
+using Application.Storage;
 using DeputyApp.DAL.UnitOfWork;
-using DeputyApp.Initializers;
-using DeputyApp.Middleware;
+using Infrastructure.DAL;
+using Infrastructure.Initializers;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Shared.Encrypt;
+using Shared.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 var config = builder.Configuration;
 
-// Load env-friendly settings
 var conn = config.GetValue<string>("DB_CONNECTION") ??
            "Host=postgres;Port=5432;Database=deputy;Username=postgres;Password=postgres";
 
 builder.Services.InitializeDatabase(conn);
 
-// Register UnitOfWork and services (existing extension in code)
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddSingleton<IBlackListService, BlackListService>();
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
@@ -62,7 +60,6 @@ builder.Services
         };
     });
 
-// MinIO config from env
 var minioEndpoint = config.GetValue<string>("MINIO_ENDPOINT") ?? "minio:9000";
 var minioAccess = config.GetValue<string>("MINIO_ACCESS_KEY") ?? "minioadmin";
 var minioSecret = config.GetValue<string>("MINIO_SECRET_KEY") ?? "minioadmin";
@@ -70,25 +67,22 @@ var minioBucket = config.GetValue<string>("MINIO_BUCKET") ?? "deputy-files";
 builder.Services.AddSingleton<IFileStorage>(_ =>
     new MinioFileStorage(minioEndpoint, minioAccess, minioSecret, minioBucket));
 
-// Telegram notification
 var tgToken = config.GetValue<string>("TELEGRAM_BOT_TOKEN") ?? "";
 var tgChat = config.GetValue<string>("TELEGRAM_CHAT_ID") ?? "";
 builder.Services.AddHttpClient<INotificationService, TelegramNotificationService>(client =>
     {
-        /* base config if needed */
     })
     .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler());
 builder.Services.AddSingleton<INotificationService>(sp =>
     new TelegramNotificationService(sp.GetRequiredService<HttpClient>(), tgToken, tgChat));
 
-// Swagger with xml comments
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description = "Введите 'Bearer' [пробел] и ваш токен",
+        Description = "пїЅпїЅпїЅпїЅпїЅпїЅпїЅ 'Bearer' [пїЅпїЅпїЅпїЅпїЅпїЅ] пїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ",
         Name = "Authorization",
         In = ParameterLocation.Header,
         Type = SecuritySchemeType.Http,
@@ -124,12 +118,11 @@ await using var appDbContext = scope.ServiceProvider.GetRequiredService<AppDbCon
 var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
 await DbContextInitializer.Migrate(appDbContext, hasher);
 
-//if (app.Environment.IsDevelopment())
-//{
+
 app.UseDeveloperExceptionPage();
 app.UseSwagger();
 app.UseSwaggerUI();
-//}
+
 app.UseMiddleware<JwtBlacklistMiddleware>();
 
 app.UseRouting();

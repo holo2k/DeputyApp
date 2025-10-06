@@ -27,4 +27,24 @@
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.14.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="Entities\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Remove="Entities\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Remove="Entities\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Entities\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Application\Application.csproj" />
+  </ItemGroup>
+
 </Project>

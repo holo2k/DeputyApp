@@ -1,7 +1,7 @@
-﻿using DeputyApp.BL.Services.Abstractions;
-using DeputyApp.Controllers.Dtos;
+﻿using Application.Dtos;
+using Application.Services.Abstractions;
 using DeputyApp.Controllers.Requests;
-using DeputyApp.Entities;
+using Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,17 +9,8 @@ namespace DeputyApp.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class PostsController : ControllerBase
+public class PostsController(IPostService posts, IAuthService authService) : ControllerBase
 {
-    private readonly IAuthService _authService;
-    private readonly IPostService _posts;
-
-    public PostsController(IPostService posts, IAuthService authService)
-    {
-        _posts = posts;
-        _authService = authService;
-    }
-
     /// <summary>
     ///     Получить список опубликованных постов.
     /// </summary>
@@ -33,7 +24,7 @@ public class PostsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetPublished([FromQuery] int skip = 0, [FromQuery] int take = 20)
     {
-        var list = await _posts.GetPublishedAsync(skip, take);
+        var list = await posts.GetPublishedAsync(skip, take);
 
         var respList = list.Select(p => new PostResponse(
             p.Id,
@@ -63,7 +54,7 @@ public class PostsController : ControllerBase
     [Authorize]
     public async Task<IActionResult> Create([FromBody] CreatePostRequest req)
     {
-        var userId = _authService.GetCurrentUserId();
+        var userId = authService.GetCurrentUserId();
         if (userId == Guid.Empty) return Unauthorized();
 
         var post = new Post
@@ -76,7 +67,7 @@ public class PostsController : ControllerBase
             CreatedById = userId
         };
 
-        var created = await _posts.CreateAsync(post);
+        var created = await posts.CreateAsync(post);
 
         var resp = new PostResponse(
             created.Id,
@@ -101,7 +92,7 @@ public class PostsController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(Guid id)
     {
-        var p = await _posts.GetByIdAsync(id);
+        var p = await posts.GetByIdAsync(id);
         if (p == null) return NotFound();
 
         var resp = new PostResponse(
@@ -127,7 +118,7 @@ public class PostsController : ControllerBase
     [Authorize]
     public async Task<IActionResult> Publish(Guid id)
     {
-        await _posts.PublishAsync(id);
+        await posts.PublishAsync(id);
         return NoContent();
     }
 
@@ -141,7 +132,7 @@ public class PostsController : ControllerBase
     [Authorize]
     public async Task<IActionResult> Delete(Guid id)
     {
-        await _posts.DeleteAsync(id);
+        await posts.DeleteAsync(id);
         return NoContent();
     }
 }

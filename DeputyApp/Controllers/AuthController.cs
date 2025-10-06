@@ -1,5 +1,5 @@
-﻿using DeputyApp.BL.Services.Abstractions;
-using DeputyApp.Controllers.Dtos;
+﻿using Application.Dtos;
+using Application.Services.Abstractions;
 using DeputyApp.Controllers.Requests;
 using Microsoft.AspNetCore.Mvc;
 
@@ -7,15 +7,8 @@ namespace DeputyApp.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class AuthController : ControllerBase
+public class AuthController(IAuthService auth) : ControllerBase
 {
-    private readonly IAuthService _auth;
-
-    public AuthController(IAuthService auth)
-    {
-        _auth = auth;
-    }
-
     /// <summary>
     ///     Аутентификация пользователя и получение JWT токена.
     /// </summary>
@@ -27,7 +20,7 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest req)
     {
-        var res = await _auth.AuthenticateAsync(req.Email, req.Password);
+        var res = await auth.AuthenticateAsync(req.Email, req.Password);
         if (res == null) return Unauthorized();
         return Ok(res);
     }
@@ -43,10 +36,10 @@ public class AuthController : ControllerBase
     [HttpPost("create")]
     public async Task<IActionResult> Create([FromBody] CreateUserRequest req)
     {
-        var currentUser = await _auth.GetCurrentUser();
+        var currentUser = await auth.GetCurrentUser();
         if (currentUser == null || currentUser.UserRoles.All(x => x.Role.Name != "Admin")) return Unauthorized();
 
-        var user = await _auth.CreateUserAsync(req.Email, req.FullName, req.JobTitle, req.Password,
+        var user = await auth.CreateUserAsync(req.Email, req.FullName, req.JobTitle, req.Password,
             req.Roles ?? new[] { "" });
         var dto = new UserDto(
             user.Id,
@@ -68,7 +61,7 @@ public class AuthController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> Get([FromRoute] Guid id)
     {
-        var user = await _auth.GetUserById(id);
+        var user = await auth.GetUserById(id);
         if (user == null) return NotFound();
         return Ok(user);
     }
@@ -83,7 +76,7 @@ public class AuthController : ControllerBase
     [HttpGet("current")]
     public async Task<IActionResult> Get()
     {
-        var user = await _auth.GetCurrentUser();
+        var user = await auth.GetCurrentUser();
         if (user == null) return Unauthorized();
         return Ok(user);
     }

@@ -1,7 +1,7 @@
-﻿using DeputyApp.BL.Mapping;
-using DeputyApp.BL.Services.Abstractions;
+﻿using Application.Mapping;
+using Application.Services.Abstractions;
 using DeputyApp.Controllers.Requests;
-using DeputyApp.Entities;
+using Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,17 +9,8 @@ namespace DeputyApp.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class EventsController : ControllerBase
+public class EventsController(IEventService events, IAuthService authService) : ControllerBase
 {
-    private readonly IAuthService _authService;
-    private readonly IEventService _events;
-
-    public EventsController(IEventService events, IAuthService authService)
-    {
-        _events = events;
-        _authService = authService;
-    }
-
     /// <summary>
     ///     Получить список предстоящих событий в указанном диапазоне дат.
     /// </summary>
@@ -32,7 +23,7 @@ public class EventsController : ControllerBase
     [HttpGet("upcoming")]
     public async Task<IActionResult> GetUpcoming([FromQuery] DateTimeOffset from, [FromQuery] DateTimeOffset to)
     {
-        var list = await _events.GetUpcomingAsync(from, to);
+        var list = await events.GetUpcomingAsync(from, to);
 
         var dtoList = list.Select(x => x.Map()).ToList();
 
@@ -55,7 +46,7 @@ public class EventsController : ControllerBase
     [Authorize]
     public async Task<IActionResult> Create([FromBody] CreateEventRequest req)
     {
-        var userId = _authService.GetCurrentUserId();
+        var userId = authService.GetCurrentUserId();
         if (userId == Guid.Empty) return Unauthorized();
 
         var ev = new Event
@@ -71,7 +62,7 @@ public class EventsController : ControllerBase
             CreatedAt = DateTimeOffset.UtcNow
         };
 
-        var created = await _events.CreateAsync(ev);
+        var created = await events.CreateAsync(ev);
 
         return CreatedAtAction(nameof(GetUpcoming), new { id = created.Id }, created.Map());
     }
@@ -86,7 +77,7 @@ public class EventsController : ControllerBase
     [Authorize]
     public async Task<IActionResult> Delete(Guid id)
     {
-        await _events.DeleteAsync(id);
+        await events.DeleteAsync(id);
         return NoContent();
     }
 }
