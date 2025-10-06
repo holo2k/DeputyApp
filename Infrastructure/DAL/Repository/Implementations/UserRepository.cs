@@ -10,4 +10,12 @@ public class UserRepository(AppDbContext db) : GenericRepository<User>(db), IUse
     {
         return await _set.AsNoTracking().FirstOrDefaultAsync(u => u.Email == email);
     }
+
+    public async Task<User?> FindByIdAsync(Guid id)
+    {
+        return await _set
+            .Include(x => x.UserRoles)
+            .ThenInclude(x => x.Role)
+            .FirstOrDefaultAsync(u => u.Id == id);
+    }
 }

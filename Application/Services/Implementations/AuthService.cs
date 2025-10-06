@@ -5,6 +5,7 @@ using Application.Dtos;
 using Application.Services.Abstractions;
 using DeputyApp.DAL.UnitOfWork;
 using Domain.Entities;
+using Infrastructure.DAL.Repository.Abstractions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
@@ -14,11 +15,12 @@ using Shared.Middleware;
 namespace Application.Services.Implementations;
 
 public class AuthService(
-    IUnitOfWork uow,
-    IPasswordHasher hasher,
-    IBlackListService blacklistService,
-    IConfiguration configuration,
-    IHttpContextAccessor httpContextAccessor)
+        IUnitOfWork uow,
+        IPasswordHasher hasher,
+        IBlackListService blacklistService,
+        IConfiguration configuration,
+        IHttpContextAccessor httpContextAccessor,
+        IUserRepository userRepository)
     : IAuthService
 {
     public async Task<AuthResult?> AuthenticateAsync(string email, string password)
@@ -72,7 +74,8 @@ public class AuthService(
     {
         var id = GetCurrentUserId();
 
-        if (id != Guid.Empty) return await uow.Users.GetByIdAsync(id!);
+        if (id != Guid.Empty)
+            return await userRepository.FindByIdAsync(id);
 
         return null;
     }

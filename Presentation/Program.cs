@@ -8,6 +8,8 @@ using Application.Storage;
 using DeputyApp.DAL.UnitOfWork;
 using DotNetEnv;
 using Infrastructure.DAL;
+using Infrastructure.DAL.Repository.Abstractions;
+using Infrastructure.DAL.Repository.Implementations;
 using Infrastructure.Initializers;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -25,6 +27,7 @@ var conn = config.GetValue<string>("DB_CONNECTION") ??
 builder.Services.InitializeDatabase(conn);
 
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddSingleton<IBlackListService, BlackListService>();
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 builder.Services.AddDeputyAppServices();
