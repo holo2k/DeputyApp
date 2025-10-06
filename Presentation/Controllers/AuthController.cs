@@ -1,5 +1,6 @@
 ﻿using Application.Dtos;
 using Application.Services.Abstractions;
+using Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
 using Presentation.Controllers.Requests;
 
@@ -18,6 +19,7 @@ public class AuthController(IAuthService auth) : ControllerBase
     ///     401 Unauthorized если Email или пароль неверные.
     /// </returns>
     [HttpPost("login")]
+    [ProducesResponseType(typeof(AuthResult), 200)]
     public async Task<IActionResult> Login([FromBody] LoginRequest req)
     {
         var res = await auth.AuthenticateAsync(req.Email, req.Password);
@@ -34,6 +36,7 @@ public class AuthController(IAuthService auth) : ControllerBase
     ///     Возвращаются роли в виде массива строк.
     /// </returns>
     [HttpPost("create")]
+    [ProducesResponseType(typeof(User), 200)]
     public async Task<IActionResult> Create([FromBody] CreateUserRequest req)
     {
         var currentUser = await auth.GetCurrentUser();
@@ -59,6 +62,7 @@ public class AuthController(IAuthService auth) : ControllerBase
     ///     404 Not Found если пользователь не найден.
     /// </returns>
     [HttpGet("{id}")]
+    [ProducesResponseType(typeof(User), 200)]
     public async Task<IActionResult> Get([FromRoute] Guid id)
     {
         var user = await auth.GetUserById(id);
@@ -74,6 +78,7 @@ public class AuthController(IAuthService auth) : ControllerBase
     ///     401 Unauthorized если пользователь не аутентифицирован.
     /// </returns>
     [HttpGet("current")]
+    [ProducesResponseType(typeof(User), 200)]
     public async Task<IActionResult> Get()
     {
         var user = await auth.GetCurrentUser();

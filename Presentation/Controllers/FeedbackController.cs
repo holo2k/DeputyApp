@@ -24,6 +24,7 @@ public class FeedbackController(IFeedbackService feedback, IAuthService authServ
     /// <response code="201">Обратная связь успешно создана.</response>
     /// <response code="401">Пользователь не авторизован.</response>
     [HttpPost]
+    [ProducesResponseType(typeof(FeedbackDto), 200)]
     public async Task<IActionResult> Send([FromBody] FeedbackRequest dto)
     {
         var userId = authService.GetCurrentUserId();
@@ -54,7 +55,7 @@ public class FeedbackController(IFeedbackService feedback, IAuthService authServ
     }
 
     /// <summary>
-    ///     Получение последних отзывов (админский метод).
+    ///     Получение последних отзывов.
     /// </summary>
     /// <remarks>
     ///     Метод позволяет администраторам просмотреть последние отзывы за указанное количество дней.
@@ -65,6 +66,7 @@ public class FeedbackController(IFeedbackService feedback, IAuthService authServ
     /// <response code="200">Список отзывов успешно получен.</response>
     /// <response code="401">Пользователь не авторизован.</response>
     [HttpGet("recent")]
+    [ProducesResponseType(typeof(List<FeedbackDto>), 200)]
     [Authorize]
     public async Task<IActionResult> Recent([FromQuery] int days = 30)
     {

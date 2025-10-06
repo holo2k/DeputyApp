@@ -1,5 +1,6 @@
 ﻿using Application.Services.Abstractions;
 using DeputyApp.DAL.UnitOfWork;
+using Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,10 +9,10 @@ namespace Presentation.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 public class DocumentsController(
-    IDocumentService docs,
-    IAuthService authService,
-    ICatalogService catalogService,
-    IUnitOfWork unitOfWork)
+        IDocumentService docs,
+        IAuthService authService,
+        ICatalogService catalogService,
+        IUnitOfWork unitOfWork)
     : ControllerBase
 {
     /// <summary>
@@ -25,6 +26,7 @@ public class DocumentsController(
     ///     Ограничение размера файла: 50 МБ.
     /// </returns>
     [HttpPost("upload")]
+    [ProducesResponseType(typeof(Document), 200)]
     [Authorize]
     [RequestSizeLimit(50_000_000)]
     public async Task<IActionResult> Upload(IFormFile? file, [FromQuery] Guid catalogId)
@@ -49,6 +51,7 @@ public class DocumentsController(
     ///     200 OK с массивом документов, принадлежащих каталогу.
     /// </returns>
     [HttpGet("by-catalog/{catalogId}")]
+    [ProducesResponseType(typeof(List<Document>), 200)]
     public async Task<IActionResult> ByCatalog(Guid catalogId)
     {
         var userId = authService.GetCurrentUserId();

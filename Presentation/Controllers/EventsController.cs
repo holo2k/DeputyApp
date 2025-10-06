@@ -1,4 +1,4 @@
-﻿using Application.Mapping;
+﻿using Application.Dtos;
 using Application.Services.Abstractions;
 using Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
@@ -19,13 +19,26 @@ public class EventsController(IEventService events, IAuthService authService) : 
     /// </remarks>
     /// <param name="from">Начальная дата диапазона.</param>
     /// <param name="to">Конечная дата диапазона.</param>
-    /// <returns>Список событий в формате <see cref="EventDto" />.</returns>
+    /// <returns>Список событий в формате <see cref="EventResponseDto" />.</returns>
     [HttpGet("upcoming")]
+    [ProducesResponseType(typeof(List<EventResponseDto>), 200)]
     public async Task<IActionResult> GetUpcoming([FromQuery] DateTimeOffset from, [FromQuery] DateTimeOffset to)
     {
         var list = await events.GetUpcomingAsync(from, to);
 
-        var dtoList = list.Select(x => x.Map()).ToList();
+        var dtoList = list.Select(ev => new EventResponseDto
+        {
+            Id = ev.Id,
+            Title = ev.Title,
+            Description = ev.Description,
+            StartAt = ev.StartAt,
+            EndAt = ev.EndAt,
+            Location = ev.Location,
+            IsPublic = ev.IsPublic,
+            OrganizerId = ev.OrganizerId ?? Guid.Empty,
+            OrganizerFullName = ev.Organizer?.FullName ?? "",
+            CreatedAt = ev.CreatedAt
+        }).ToList();
 
         return Ok(dtoList);
     }
@@ -38,8 +51,9 @@ public class EventsController(IEventService events, IAuthService authService) : 
     /// </remarks>
     /// <param name="from">Начальная дата диапазона.</param>
     /// <param name="to">Конечная дата диапазона.</param>
-    /// <returns>Список событий в формате <see cref="EventDto" />.</returns>
+    /// <returns>Список событий в формате <see cref="EventResponseDto" />.</returns>
     [HttpGet("my-upcoming")]
+    [ProducesResponseType(typeof(List<EventResponseDto>), 200)]
     public async Task<IActionResult> GetMyUpcoming([FromQuery] DateTimeOffset from, [FromQuery] DateTimeOffset to)
     {
         var userId = authService.GetCurrentUserId();
@@ -47,7 +61,19 @@ public class EventsController(IEventService events, IAuthService authService) : 
 
         var list = await events.GetMyUpcomingAsync(userId, from, to);
 
-        var dtoList = list.Select(x => x.Map()).ToList();
+        var dtoList = list.Select(ev => new EventResponseDto
+        {
+            Id = ev.Id,
+            Title = ev.Title,
+            Description = ev.Description,
+            StartAt = ev.StartAt,
+            EndAt = ev.EndAt,
+            Location = ev.Location,
+            IsPublic = ev.IsPublic,
+            OrganizerId = ev.OrganizerId ?? Guid.Empty,
+            OrganizerFullName = ev.Organizer?.FullName ?? "",
+            CreatedAt = ev.CreatedAt
+        }).ToList();
 
         return Ok(dtoList);
     }
@@ -61,11 +87,12 @@ public class EventsController(IEventService events, IAuthService authService) : 
     ///     Возвращается DTO созданного события с его идентификатором и датой создания.
     /// </remarks>
     /// <param name="req">Данные события для создания (<see cref="CreateEventRequest" />).</param>
-    /// <returns>Созданное событие в формате <see cref="EventDto" />.</returns>
+    /// <returns>Созданное событие в формате <see cref="EventResponseDto" />.</returns>
     /// <response code="201">Событие успешно создано.</response>
     /// <response code="401">Пользователь не авторизован.</response>
     [HttpPost]
     [Authorize]
+    [ProducesResponseType(typeof(EventResponseDto), 200)]
     public async Task<IActionResult> Create([FromBody] CreateEventRequest req)
     {
         var userId = authService.GetCurrentUserId();
@@ -86,7 +113,21 @@ public class EventsController(IEventService events, IAuthService authService) : 
 
         var created = await events.CreateAsync(ev);
 
-        return CreatedAtAction(nameof(GetUpcoming), new { id = created.Id }, created.Map());
+        var dto = new EventResponseDto
+        {
+            Id = created.Id,
+            Title = created.Title,
+            Description = created.Description,
+            StartAt = created.StartAt,
+            EndAt = created.EndAt,
+            Location = created.Location,
+            IsPublic = created.IsPublic,
+            OrganizerId = created.OrganizerId ?? Guid.Empty,
+            OrganizerFullName = created.Organizer?.FullName ?? "",
+            CreatedAt = created.CreatedAt
+        };
+
+        return CreatedAtAction(nameof(GetUpcoming), new { id = created.Id }, dto);
     }
 
     /// <summary>

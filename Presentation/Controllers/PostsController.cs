@@ -22,25 +22,28 @@ public class PostsController(IPostService posts, IAuthService authService) : Con
     /// <param name="take">Количество постов для выборки (по умолчанию 20).</param>
     /// <returns>Список постов в формате <see cref="PostResponse" />.</returns>
     [HttpGet]
+    [ProducesResponseType(typeof(List<PostResponse>), 200)]
     public async Task<IActionResult> GetPublished([FromQuery] int skip = 0, [FromQuery] int take = 20)
     {
         var list = await posts.GetPublishedAsync(skip, take);
 
-        var respList = list.Select(p => new PostResponse(
-            p.Id,
-            p.Title,
-            p.Summary,
-            p.Body,
-            p.ThumbnailUrl,
-            p.CreatedAt,
-            p.PublishedAt
-        )).ToList();
+        var respList = list.Select(p => new PostResponse
+            {
+                Id = p.Id,
+                Title = p.Title,
+                Summary = p.Summary,
+                Body = p.Body,
+                ThumbnailUrl = p.ThumbnailUrl,
+                CreatedAt = p.CreatedAt,
+                PublishedAt = p.PublishedAt
+            }
+        ).ToList();
 
         return Ok(respList);
     }
 
     /// <summary>
-    ///     Создать пост (только для авторизованных пользователей).
+    ///     Создать и опубликовать пост.
     /// </summary>
     /// <remarks>
     ///     Тело запроса содержит данные поста: заголовок, краткое описание, текст и URL миниатюры.
@@ -51,6 +54,7 @@ public class PostsController(IPostService posts, IAuthService authService) : Con
     /// <response code="201">Пост успешно создан.</response>
     /// <response code="401">Пользователь не авторизован.</response>
     [HttpPost]
+    [ProducesResponseType(typeof(PostResponse), 200)]
     [Authorize]
     public async Task<IActionResult> Create([FromBody] CreatePostRequest req)
     {
@@ -69,15 +73,16 @@ public class PostsController(IPostService posts, IAuthService authService) : Con
 
         var created = await posts.CreateAsync(post);
 
-        var resp = new PostResponse(
-            created.Id,
-            created.Title,
-            created.Summary,
-            created.Body,
-            created.ThumbnailUrl,
-            created.CreatedAt,
-            created.PublishedAt
-        );
+        var resp = new PostResponse
+        {
+            Id = created.Id,
+            Title = created.Title,
+            Summary = created.Summary,
+            Body = created.Body,
+            ThumbnailUrl = created.ThumbnailUrl,
+            CreatedAt = created.CreatedAt,
+            PublishedAt = created.PublishedAt
+        };
 
         await posts.PublishAsync(resp.Id); //опубликовать?
         return CreatedAtAction(nameof(GetById), new { id = resp.Id }, resp);
@@ -91,36 +96,24 @@ public class PostsController(IPostService posts, IAuthService authService) : Con
     /// <response code="200">Пост найден и возвращен.</response>
     /// <response code="404">Пост с указанным ID не найден.</response>
     [HttpGet("{id}")]
+    [ProducesResponseType(typeof(PostResponse), 200)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var p = await posts.GetByIdAsync(id);
         if (p == null) return NotFound();
 
-        var resp = new PostResponse(
-            p.Id,
-            p.Title,
-            p.Summary,
-            p.Body,
-            p.ThumbnailUrl,
-            p.CreatedAt,
-            p.PublishedAt
-        );
+        var resp = new PostResponse
+        {
+            Id = p.Id,
+            Title = p.Title,
+            Summary = p.Summary,
+            Body = p.Body,
+            ThumbnailUrl = p.ThumbnailUrl,
+            CreatedAt = p.CreatedAt,
+            PublishedAt = p.PublishedAt
+        };
 
         return Ok(resp);
-    }
-
-    /// <summary>
-    ///     Опубликовать пост (только для авторизованных пользователей).
-    /// </summary>
-    /// <param name="id">Идентификатор поста для публикации.</param>
-    /// <response code="204">Пост успешно опубликован.</response>
-    /// <response code="401">Пользователь не авторизован.</response>
-    [HttpPost("{id}/publish")]
-    [Authorize]
-    public async Task<IActionResult> Publish(Guid id)
-    {
-        await posts.PublishAsync(id);
-        return NoContent();
     }
 
     /// <summary>

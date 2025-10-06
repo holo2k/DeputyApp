@@ -1,4 +1,5 @@
 ﻿using Application.Services.Abstractions;
+using Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
 using Presentation.Controllers.Requests;
 
@@ -17,6 +18,7 @@ public class CatalogsController(ICatalogService catalogService, IAuthService aut
     ///     401 Unauthorized если пользователь не авторизован.
     /// </returns>
     [HttpPost]
+    [ProducesResponseType(typeof(Catalog), 200)]
     public async Task<IActionResult> Create([FromBody] CreateCatalogRequest req)
     {
         var userId = authService.GetCurrentUserId();
@@ -35,6 +37,7 @@ public class CatalogsController(ICatalogService catalogService, IAuthService aut
     ///     404 NotFound если каталог не найден.
     /// </returns>
     [HttpGet("{id}")]
+    [ProducesResponseType(typeof(Catalog), 200)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var userId = authService.GetCurrentUserId();
@@ -53,6 +56,7 @@ public class CatalogsController(ICatalogService catalogService, IAuthService aut
     ///     401 Unauthorized если пользователь не авторизован.
     /// </returns>
     [HttpGet("my")]
+    [ProducesResponseType(typeof(List<Catalog>), 200)]
     public async Task<IActionResult> GetMine()
     {
         var userId = authService.GetCurrentUserId();
@@ -72,6 +76,7 @@ public class CatalogsController(ICatalogService catalogService, IAuthService aut
     ///     404 NotFound если каталог не найден.
     /// </returns>
     [HttpPut("{id}")]
+    [ProducesResponseType(typeof(Catalog), 200)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateCatalogRequest req)
     {
         var userId = authService.GetCurrentUserId();
