@@ -15,7 +15,7 @@ using Microsoft.OpenApi.Models;
 using Shared.Encrypt;
 using Shared.Middleware;
 
-Env.Load(); 
+Env.Load();
 
 var builder = WebApplication.CreateBuilder(args);
 var config = builder.Configuration;
@@ -34,8 +34,8 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowAll", policy =>
     {
         policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
+            .AllowAnyMethod()
+            .AllowAnyHeader();
     });
 });
 
@@ -82,6 +82,13 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "Deputy API",
+        Version = "v1",
+        Description = "API для депутатского приложения"
+    });
+
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Description = "Введите 'Bearer' [пробел] и ваш JWT",
@@ -121,7 +128,11 @@ await DbContextInitializer.Migrate(appDbContext, hasher);
 
 app.UseDeveloperExceptionPage();
 app.UseSwagger();
-app.UseSwaggerUI();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Deputy API v1");
+    c.RoutePrefix = string.Empty;
+});
 
 app.UseCors("AllowAll");
 

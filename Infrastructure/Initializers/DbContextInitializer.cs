@@ -29,7 +29,7 @@ public static class DbContextInitializer
                 attempt++;
                 await context.Database.MigrateAsync();
                 Console.WriteLine("Database migrated successfully.");
-                if (context.Users.All(x => x.UserRoles.Any(r => r.Role.Name == "Admin")))
+                if (context.Users.Any(x => x.UserRoles.Any(r => r.Role.Name == "Admin")))
                     return;
 
                 var userId = Guid.CreateVersion7();

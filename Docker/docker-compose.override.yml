@@ -1,0 +1,16 @@
+version: "3.9"
+services:
+  api:
+
+    volumes:
+      - ..:/workspace:cached
+    working_dir: /workspace/Presentation
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: "http://+:80"
+    labels:
+      - "com.microsoft.visualstudio.debuggee.program=/workspace/Presentation/bin/Debug/net9.0/Presentation.dll"
+      - "com.microsoft.visualstudio.debuggee.workingdirectory=/workspace/Presentation"
+      - "com.microsoft.visualstudio.debuggee.killprogram=true"
+    ports:
+      - "5000:80"
