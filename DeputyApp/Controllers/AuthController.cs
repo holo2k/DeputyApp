@@ -2,7 +2,6 @@
 using DeputyApp.Controllers.Dtos;
 using DeputyApp.Controllers.Requests;
 using Microsoft.AspNetCore.Mvc;
-using LoginRequest = Microsoft.AspNetCore.Identity.Data.LoginRequest;
 
 namespace DeputyApp.Controllers;
 
