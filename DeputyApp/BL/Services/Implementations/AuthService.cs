@@ -42,14 +42,19 @@ public class AuthService : IAuthService
     }
 
 
-    public async Task<User> CreateUserAsync(string email, string fullName, string password, params string[] roleNames)
+    public async Task<User> CreateUserAsync(string email, string fullName, string jobTitle, string password,
+        params string[] roleNames)
     {
         if (await _uow.Users.ExistsAsync(u => u.Email == email)) throw new InvalidOperationException("User exists");
         var salt = Guid.NewGuid().ToString();
         var user = new User
         {
-            Id = Guid.NewGuid(), Email = email, FullName = fullName,
-            PasswordHash = _hasher.HashPassword(password, salt), Salt = salt,
+            Id = Guid.NewGuid(),
+            Email = email,
+            FullName = fullName,
+            JobTitle = jobTitle,
+            PasswordHash = _hasher.HashPassword(password, salt),
+            Salt = salt,
             CreatedAt = DateTimeOffset.UtcNow
         };
         await _uow.Users.AddAsync(user);
@@ -95,16 +100,28 @@ public class AuthService : IAuthService
         return claimsIdentity?.FindAll(ClaimTypes.Role).Select(claim => claim.Value).ToList() ?? new List<string>();
     }
 
-    public string GenerateJwtToken<T>(T user)
+    public void Logout(string token)
+    {
+        blacklistService.AddTokenToBlacklist(token);
+    }
+
+    public async Task<User?> GetUserById(Guid id)
+    {
+        if (id != Guid.Empty) return await _uow.Users.GetByIdAsync(id!);
+
+        return null;
+    }
+
+    public string GenerateJwtToken(User user)
     {
         var userRoles = new List<string>();
 
-        userRoles.Add("USER");
+        userRoles = user.UserRoles.Select(x => x.Role.Name).ToList();
 
         var claims = new List<Claim>
         {
-            new(JwtRegisteredClaimNames.Sub, (user as User)?.Id.ToString() ?? string.Empty),
-            new(ClaimTypes.NameIdentifier, (user as User)?.Id.ToString() ?? string.Empty),
+            new(JwtRegisteredClaimNames.Sub, user?.Id.ToString() ?? string.Empty),
+            new(ClaimTypes.NameIdentifier, user?.Id.ToString() ?? string.Empty),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
 
@@ -124,17 +141,5 @@ public class AuthService : IAuthService
         );
 
         return new JwtSecurityTokenHandler().WriteToken(token);
-    }
-
-    public void Logout(string token)
-    {
-        blacklistService.AddTokenToBlacklist(token);
-    }
-
-    public async Task<User?> GetUserById(Guid id)
-    {
-        if (id != Guid.Empty) return await _uow.Users.GetByIdAsync(id!);
-
-        return null;
     }
 }

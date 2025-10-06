@@ -43,7 +43,11 @@ public class AuthController : ControllerBase
     [HttpPost("create")]
     public async Task<IActionResult> Create([FromBody] CreateUserRequest req)
     {
-        var user = await _auth.CreateUserAsync(req.Email, req.FullName, req.Password, req.Roles ?? new[] { "" });
+        var currentUser = await _auth.GetCurrentUser();
+        if (currentUser == null || currentUser.UserRoles.All(x => x.Role.Name != "Admin")) return Unauthorized();
+
+        var user = await _auth.CreateUserAsync(req.Email, req.FullName, req.JobTitle, req.Password,
+            req.Roles ?? new[] { "" });
         var dto = new UserDto(
             user.Id,
             user.Email,

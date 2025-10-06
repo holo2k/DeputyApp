@@ -1,4 +1,6 @@
-﻿using DeputyApp.DAL;
+﻿using DeputyApp.BL.Encrypt;
+using DeputyApp.DAL;
+using DeputyApp.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace DeputyApp.Initializers;
@@ -14,7 +16,7 @@ public static class DbContextInitializer
     /// <summary>
     ///     Попытаться применить миграции с повторными попытками.
     /// </summary>
-    public static async Task Migrate(AppDbContext context, int maxAttempts = 12)
+    public static async Task Migrate(AppDbContext context, IPasswordHasher passwordHasher, int maxAttempts = 12)
     {
         if (context == null) throw new ArgumentNullException(nameof(context));
         var attempt = 0;
@@ -26,7 +28,36 @@ public static class DbContextInitializer
                 attempt++;
                 await context.Database.MigrateAsync();
                 Console.WriteLine("Database migrated successfully.");
-                return;
+                if (context.Users.All(x => x.UserRoles.Any(r => r.Role.Name == "Admin")))
+                    return;
+
+                var userId = Guid.CreateVersion7();
+                var roleId = Guid.CreateVersion7();
+                var salt = Guid.NewGuid().ToString();
+                var password = "admin";
+
+                var user = new User
+                {
+                    Id = userId,
+                    CreatedAt = DateTime.UtcNow,
+                    Email = "admin@admin.ru",
+                    JobTitle = "admin",
+                    Salt = salt,
+                    FullName = "Admin"
+                };
+
+                user.PasswordHash = passwordHasher.HashPassword(password, salt);
+
+                context.Users.Add(user);
+                context.Roles.Add(new Role { Id = roleId, Name = "Admin" });
+
+                context.UserRoles.Add(new UserRole
+                {
+                    UserId = userId,
+                    RoleId = roleId
+                });
+
+                await context.SaveChangesAsync();
             }
             catch (Exception ex) when (IsTransient(ex))
             {

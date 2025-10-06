@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Security.Claims;
 using System.Text;
+using DeputyApp.BL.Encrypt;
 using DeputyApp.BL.Notifications;
 using DeputyApp.BL.Services;
 using DeputyApp.BL.Services.Abstractions;
@@ -87,10 +88,12 @@ builder.Services.AddSwaggerGen(options =>
 {
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description = "¬ведите 'Bearer' [пробел] дл€ авторизации",
+        Description = "¬ведите 'Bearer' [пробел] и ваш токен",
         Name = "Authorization",
         In = ParameterLocation.Header,
-        Type = SecuritySchemeType.ApiKey
+        Type = SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "JWT"
     });
 
     options.AddSecurityRequirement(new OpenApiSecurityRequirement
@@ -117,8 +120,9 @@ var app = builder.Build();
 app.UseCors("AllowAll");
 
 using var scope = app.Services.CreateScope();
-using var appDbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-await DbContextInitializer.Migrate(appDbContext);
+await using var appDbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
+await DbContextInitializer.Migrate(appDbContext, hasher);
 
 //if (app.Environment.IsDevelopment())
 //{

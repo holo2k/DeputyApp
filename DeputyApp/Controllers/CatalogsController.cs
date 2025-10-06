@@ -1,6 +1,5 @@
 ﻿using DeputyApp.BL.Services.Abstractions;
 using DeputyApp.Controllers.Requests;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DeputyApp.Controllers;
@@ -27,7 +26,6 @@ public class CatalogsController : ControllerBase
     ///     401 Unauthorized если пользователь не авторизован.
     /// </returns>
     [HttpPost]
-    [Authorize]
     public async Task<IActionResult> Create([FromBody] CreateCatalogRequest req)
     {
         var userId = _authService.GetCurrentUserId();
@@ -48,6 +46,9 @@ public class CatalogsController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(Guid id)
     {
+        var userId = _authService.GetCurrentUserId();
+        if (userId == Guid.Empty) return Unauthorized();
+
         var catalog = await _catalogService.GetByIdAsync(id);
         if (catalog == null) return NotFound();
         return Ok(catalog);
@@ -61,13 +62,12 @@ public class CatalogsController : ControllerBase
     ///     401 Unauthorized если пользователь не авторизован.
     /// </returns>
     [HttpGet("my")]
-    [Authorize]
     public async Task<IActionResult> GetMine()
     {
         var userId = _authService.GetCurrentUserId();
         if (userId == Guid.Empty) return Unauthorized();
 
-        var catalogs = await _catalogService.GetByOwnerAsync((Guid)userId!);
+        var catalogs = await _catalogService.GetByOwnerAsync(userId!);
         return Ok(catalogs);
     }
 
@@ -81,9 +81,14 @@ public class CatalogsController : ControllerBase
     ///     404 NotFound если каталог не найден.
     /// </returns>
     [HttpPut("{id}")]
-    [Authorize]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateCatalogRequest req)
     {
+        var userId = _authService.GetCurrentUserId();
+        if (userId == Guid.Empty) return Unauthorized();
+
+        var userCatalog = await _catalogService.GetByIdAsync(id);
+        if (userCatalog?.OwnerId != userId) return Unauthorized("Нет доступа к чужому каталогу");
+
         var catalog = await _catalogService.UpdateAsync(id, req.NewName, req.NewParentCatalogId);
         if (catalog == null) return NotFound();
         return Ok(catalog);
@@ -98,9 +103,14 @@ public class CatalogsController : ControllerBase
     ///     404 NotFound если каталог не найден или содержит дочерние каталоги.
     /// </returns>
     [HttpDelete("{id}")]
-    [Authorize]
     public async Task<IActionResult> Delete(Guid id)
     {
+        var userId = _authService.GetCurrentUserId();
+        if (userId == Guid.Empty) return Unauthorized();
+
+        var userCatalog = await _catalogService.GetByIdAsync(id);
+        if (userCatalog?.OwnerId != userId) return Unauthorized("Нет доступа к чужому каталогу");
+
         var result = await _catalogService.DeleteAsync(id);
         if (!result) return NotFound();
         return NoContent();

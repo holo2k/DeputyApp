@@ -6,6 +6,8 @@
 public record CreateUserRequest(
     /// <summary>Email нового пользователя.</summary>
     string Email,
+    /// <summary>Должность нового пользователя.</summary>
+    string JobTitle,
     /// <summary>Полное имя пользователя.</summary>
     string FullName,
     /// <summary>Пароль пользователя.</summary>
