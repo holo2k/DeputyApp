@@ -19,9 +19,9 @@ public class EventRepository : GenericRepository<Event>, IEventRepository
 
     public async Task<IEnumerable<Event>> GetMyUpcomingAsync(DateTimeOffset from, DateTimeOffset to, Guid userId)
     {
-        return await _set.AsNoTracking().Where(e => e.StartAt >= from && e.StartAt <= to && !e.IsPublic && e.OrganizerId == userId)
+        return await _set.AsNoTracking()
+            .Where(e => e.StartAt >= from && e.StartAt <= to && !e.IsPublic && e.OrganizerId == userId)
             .OrderBy(e => e.StartAt)
             .ToListAsync();
     }
-}
 }
