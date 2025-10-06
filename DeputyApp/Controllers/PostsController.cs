@@ -88,6 +88,7 @@ public class PostsController : ControllerBase
             created.PublishedAt
         );
 
+        await _posts.PublishAsync(resp.Id); //опубликовать?
         return CreatedAtAction(nameof(GetById), new { id = resp.Id }, resp);
     }
 

@@ -36,4 +36,10 @@ public class EventService : IEventService
         _uow.Events.Delete(e);
         await _uow.SaveChangesAsync();
     }
+
+    public async Task<IEnumerable<Event>> GetMyUpcomingAsync(Guid userId, DateTimeOffset from, DateTimeOffset to)
+    {
+        var events = await _uow.Events.GetUpcomingAsync(from, to);
+        return events.Where(x => x.OrganizerId == userId);
+    }
 }

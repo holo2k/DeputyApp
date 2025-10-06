@@ -71,7 +71,7 @@ public class DocumentsController : ControllerBase
     }
 
     /// <summary>
-    ///     Удалить документ по его идентификатору (только для администраторов).
+    ///     Удалить документ по его идентификатору.
     /// </summary>
     /// <param name="id">Идентификатор документа.</param>
     /// <returns>
