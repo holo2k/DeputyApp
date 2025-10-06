@@ -48,7 +48,7 @@ public class EventsController : ControllerBase
     /// <param name="from">Начальная дата диапазона.</param>
     /// <param name="to">Конечная дата диапазона.</param>
     /// <returns>Список событий в формате <see cref="EventDto" />.</returns>
-    [HttpGet("upcoming")]
+    [HttpGet("my-upcoming")]
     public async Task<IActionResult> GetMyUpcoming([FromQuery] DateTimeOffset from, [FromQuery] DateTimeOffset to)
     {
         var userId = _authService.GetCurrentUserId();
