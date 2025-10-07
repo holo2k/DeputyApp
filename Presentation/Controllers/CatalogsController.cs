@@ -1,5 +1,7 @@
-﻿using Application.Services.Abstractions;
+﻿using Application.Dtos;
+using Application.Services.Abstractions;
 using Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Presentation.Controllers.Requests;
 
@@ -18,14 +20,15 @@ public class CatalogsController(ICatalogService catalogService, IAuthService aut
     ///     401 Unauthorized если пользователь не авторизован.
     /// </returns>
     [HttpPost]
-    [ProducesResponseType(typeof(Catalog), 200)]
+    [ProducesResponseType(typeof(CatalogResponse), 201)]
     public async Task<IActionResult> Create([FromBody] CreateCatalogRequest req)
     {
         var userId = authService.GetCurrentUserId();
         if (userId == Guid.Empty) return Unauthorized();
 
         var catalog = await catalogService.CreateAsync(req.Name, userId, req.ParentCatalogId);
-        return CreatedAtAction(nameof(GetById), new { id = catalog.Id }, catalog);
+        var response = new CatalogResponse(catalog.Id, catalog.Name, catalog.ParentCatalogId);
+        return CreatedAtAction(nameof(GetById), new { id = catalog.Id }, response);
     }
 
     /// <summary>
@@ -37,7 +40,7 @@ public class CatalogsController(ICatalogService catalogService, IAuthService aut
     ///     404 NotFound если каталог не найден.
     /// </returns>
     [HttpGet("{id}")]
-    [ProducesResponseType(typeof(Catalog), 200)]
+    [ProducesResponseType(typeof(CatalogResponse), 200)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var userId = authService.GetCurrentUserId();
@@ -45,7 +48,8 @@ public class CatalogsController(ICatalogService catalogService, IAuthService aut
 
         var catalog = await catalogService.GetByIdAsync(id);
         if (catalog == null) return NotFound();
-        return Ok(catalog);
+        var response = new CatalogResponse(catalog.Id, catalog.Name, catalog.ParentCatalogId);
+        return Ok(response);
     }
 
     /// <summary>
@@ -56,14 +60,22 @@ public class CatalogsController(ICatalogService catalogService, IAuthService aut
     ///     401 Unauthorized если пользователь не авторизован.
     /// </returns>
     [HttpGet("my")]
-    [ProducesResponseType(typeof(List<Catalog>), 200)]
+    [ProducesResponseType(typeof(List<CatalogResponse>), 200)]
+    [Authorize]
     public async Task<IActionResult> GetMine()
     {
         var userId = authService.GetCurrentUserId();
         if (userId == Guid.Empty) return Unauthorized();
 
-        var catalogs = await catalogService.GetByOwnerAsync(userId!);
-        return Ok(catalogs);
+        var catalogs = await catalogService.GetByOwnerAsync(userId);
+
+        var resp = catalogs.Select(c => new CatalogResponse(
+            c.Id,
+            c.Name,
+            c.ParentCatalogId
+        )).ToList();
+
+        return Ok(resp);
     }
 
     /// <summary>
@@ -87,7 +99,8 @@ public class CatalogsController(ICatalogService catalogService, IAuthService aut
 
         var catalog = await catalogService.UpdateAsync(id, req.NewName, req.NewParentCatalogId);
         if (catalog == null) return NotFound();
-        return Ok(catalog);
+        var response = new CatalogResponse(catalog.Id, catalog.Name, catalog.ParentCatalogId);
+        return Ok(response);
     }
 
     /// <summary>

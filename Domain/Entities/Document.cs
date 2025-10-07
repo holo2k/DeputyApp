@@ -14,7 +14,9 @@ public class Document
     [JsonIgnore] public User? UploadedBy { get; set; }
 
     public Guid? CatalogId { get; set; }
-    public Catalog? Catalog { get; set; }
+
+    [JsonIgnore] public Catalog? Catalog { get; set; }
+
     public Guid? PostId { get; set; }
     public Post? Post { get; set; }
     public DateTimeOffset UploadedAt { get; set; } = DateTimeOffset.UtcNow;

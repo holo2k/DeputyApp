@@ -4,32 +4,40 @@ using Minio.DataModel.Args;
 
 namespace Application.Storage;
 
-public class MinioFileStorage(string endpoint, string accessKey, string secretKey, string bucket, bool secure = false)
+public class MinioFileStorage
     : IFileStorage
 {
-    private readonly IMinioClient _client = new MinioClient()
-        .WithEndpoint(endpoint)
-        .WithCredentials(accessKey, secretKey)
-        .WithSSL(secure)
-        .Build();
+    private readonly string _bucket;
+    private readonly IMinioClient _client;
+
+    public MinioFileStorage(MinioOptions options)
+    {
+        _bucket = options.Bucket;
+        options.Endpoint = "localhost:9000";
+        _client = new MinioClient()
+            .WithEndpoint(options.Endpoint)
+            .WithCredentials(options.AccessKey, options.SecretKey)
+            .WithSSL(options.Secure)
+            .Build();
+    }
 
     public async Task<string> UploadAsync(string fileName, Stream content, string contentType)
     {
         try
         {
-            var exists = await _client.BucketExistsAsync(new BucketExistsArgs().WithBucket(bucket));
-            if (!exists) await _client.MakeBucketAsync(new MakeBucketArgs().WithBucket(bucket));
+            var exists = await _client.BucketExistsAsync(new BucketExistsArgs().WithBucket(_bucket));
+            if (!exists) await _client.MakeBucketAsync(new MakeBucketArgs().WithBucket(_bucket));
 
             await _client.PutObjectAsync(
                 new PutObjectArgs()
-                    .WithBucket(bucket)
+                    .WithBucket(_bucket)
                     .WithObject(fileName)
                     .WithStreamData(content)
                     .WithObjectSize(content.Length)
                     .WithContentType(contentType)
             );
 
-            return $"{bucket}/{fileName}";
+            return $"{_bucket}/{fileName}";
         }
         catch (Exception ex)
         {
@@ -43,7 +51,7 @@ public class MinioFileStorage(string endpoint, string accessKey, string secretKe
         if (string.IsNullOrEmpty(objectName)) return;
         try
         {
-            await _client.RemoveObjectAsync(new RemoveObjectArgs().WithBucket(bucket).WithObject(objectName));
+            await _client.RemoveObjectAsync(new RemoveObjectArgs().WithBucket(_bucket).WithObject(objectName));
         }
         catch (Exception)
         {
@@ -55,7 +63,7 @@ public class MinioFileStorage(string endpoint, string accessKey, string secretKe
         try
         {
             var presigned = await _client.PresignedGetObjectAsync(new PresignedGetObjectArgs()
-                .WithBucket(bucket)
+                .WithBucket(_bucket)
                 .WithObject(fileName)
                 .WithExpiry((int)validFor.TotalSeconds));
             return presigned;
@@ -72,6 +80,5 @@ public class MinioFileStorage(string endpoint, string accessKey, string secretKe
         if (!url.Contains("/")) return url;
         var parts = url.Split('/', 2);
         return parts.Length == 2 ? parts[1] : parts[0];
-
     }
 }

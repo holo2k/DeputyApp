@@ -28,6 +28,7 @@ builder.Services.InitializeDatabase(conn);
 
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<ICatalogRepository, CatalogRepository>();
 builder.Services.AddSingleton<IBlackListService, BlackListService>();
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 builder.Services.AddDeputyAppServices();
@@ -67,12 +68,15 @@ builder.Services
         };
     });
 
-var minioEndpoint = config.GetValue<string>("MINIO_ENDPOINT") ?? "minio:9000";
-var minioAccess = config.GetValue<string>("MINIO_ACCESS_KEY") ?? "minioadmin";
-var minioSecret = config.GetValue<string>("MINIO_SECRET_KEY") ?? "minioadmin";
-var minioBucket = config.GetValue<string>("MINIO_BUCKET") ?? "deputy-files";
-builder.Services.AddSingleton<IFileStorage>(_ =>
-    new MinioFileStorage(minioEndpoint, minioAccess, minioSecret, minioBucket));
+var minioOptions = new MinioOptions
+{
+    Endpoint = config.GetValue<string>("MINIO_ENDPOINT") ?? "localhost:9000",
+    AccessKey = config.GetValue<string>("MINIO_ACCESS_KEY") ?? "minioadmin",
+    SecretKey = config.GetValue<string>("MINIO_SECRET_KEY") ?? "minioadmin",
+    Bucket = config.GetValue<string>("MINIO_BUCKET") ?? "deputy-files"
+};
+builder.Services.AddSingleton(minioOptions);
+builder.Services.AddSingleton<IFileStorage, MinioFileStorage>();
 
 var tgToken = config.GetValue<string>("TELEGRAM_BOT_TOKEN") ?? "";
 var tgChat = config.GetValue<string>("TELEGRAM_CHAT_ID") ?? "";

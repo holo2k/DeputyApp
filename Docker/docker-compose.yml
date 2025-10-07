@@ -51,7 +51,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       DB_CONNECTION: Host=postgres;Port=5432;Database=deputy;Username=postgres;Password=postgres
-      MINIO_ENDPOINT: minio:9000
+      MINIO_ENDPOINT: localhost:9000
       MINIO_ACCESS_KEY: minioadmin
       MINIO_SECRET_KEY: minioadmin
       MINIO_BUCKET: deputy-files

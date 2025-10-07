@@ -1,5 +1,6 @@
 ﻿using Application.Services.Abstractions;
 using Application.Services.Implementations;
+using Application.Storage;
 using DeputyApp.DAL.UnitOfWork;
 using Microsoft.Extensions.DependencyInjection;
 using Shared.Encrypt;
@@ -12,6 +13,7 @@ public static class ServiceCollectionExtensions
     {
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();
+        services.AddScoped<IFileStorage, MinioFileStorage>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IPostService, PostService>();
@@ -19,6 +21,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IDocumentService, DocumentService>();
         services.AddScoped<IAnalyticsService, AnalyticsService>();
         services.AddScoped<IFeedbackService, FeedbackService>();
+        services.AddScoped<ICatalogService, CatalogService>();
         return services;
     }
 }
