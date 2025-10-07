@@ -1,4 +1,6 @@
-﻿namespace Domain.Entities;
+﻿using System.Text.Json.Serialization;
+
+namespace Domain.Entities;
 
 public class Post
 {
@@ -7,7 +9,9 @@ public class Post
     public string Summary { get; set; } = string.Empty;
     public string Body { get; set; } = string.Empty;
     public Guid? CreatedById { get; set; }
-    public User? CreatedBy { get; set; }
+
+    [JsonIgnore] public User? CreatedBy { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? PublishedAt { get; set; }
     public string? ThumbnailUrl { get; set; }

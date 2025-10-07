@@ -75,7 +75,7 @@ public class AuthController(IAuthService auth) : ControllerBase
     ///     401 Unauthorized если пользователь не аутентифицирован.
     /// </returns>
     [HttpGet("current")]
-    [ProducesResponseType(typeof(User), 200)]
+    [ProducesResponseType(typeof(UserDto), 200)]
     public async Task<IActionResult> Get()
     {
         var user = await auth.GetCurrentUser();
