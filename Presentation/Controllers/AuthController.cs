@@ -40,7 +40,7 @@ public class AuthController(IAuthService auth) : ControllerBase
     public async Task<IActionResult> Create([FromBody] CreateUserRequest req)
     {
         var currentUser = await auth.GetCurrentUser();
-        if (currentUser == null || currentUser.UserRoles.All(x => x.Role.Name != "Admin")) return Unauthorized();
+        if (currentUser == null || currentUser.Roles.All(x => x != "Admin")) return Unauthorized();
 
         var user = await auth.CreateUserAsync(req.Email, req.FullName, req.JobTitle, req.Password,
             req.Roles ?? new[] { "" });

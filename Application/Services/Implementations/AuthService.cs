@@ -70,12 +70,15 @@ public class AuthService(
         return user;
     }
 
-    public async Task<User?> GetCurrentUser()
+    public async Task<UserDto?> GetCurrentUser()
     {
         var id = GetCurrentUserId();
 
         if (id != Guid.Empty)
-            return await userRepository.FindByIdAsync(id);
+        {
+            var user = await userRepository.FindByIdAsync(id);
+            return new UserDto(id, user.Email, user.FullName, user.UserRoles.Select(r => r.Role.Name).ToArray());
+        }
 
         return null;
     }
@@ -99,9 +102,13 @@ public class AuthService(
         blacklistService.AddTokenToBlacklist(token);
     }
 
-    public async Task<User?> GetUserById(Guid id)
+    public async Task<UserDto?> GetUserById(Guid id)
     {
-        if (id != Guid.Empty) return await uow.Users.GetByIdAsync(id!);
+        if (id != Guid.Empty)
+        {
+            var user = await userRepository.FindByIdAsync(id);
+            return new UserDto(id, user.Email, user.FullName, user.UserRoles.Select(r => r.Role.Name).ToArray());
+        }
 
         return null;
     }

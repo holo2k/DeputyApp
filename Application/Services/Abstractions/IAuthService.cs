@@ -12,8 +12,8 @@ public interface IAuthService
 
     Guid GetCurrentUserId();
     List<string> GetCurrentUserRoles();
-    Task<User?> GetCurrentUser();
-    Task<User?> GetUserById(Guid id);
+    Task<UserDto?> GetCurrentUser();
+    Task<UserDto?> GetUserById(Guid id);
     string GenerateJwtToken(User user);
 
     void Logout(string token);
