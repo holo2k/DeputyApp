@@ -77,7 +77,9 @@ public class AuthService(
         if (id != Guid.Empty)
         {
             var user = await userRepository.FindByIdAsync(id);
-            return new UserDto(id, user.Email, user.FullName, user.UserRoles.Select(r => r.Role.Name).ToArray());
+            return new UserDto(id, user.Email, user.FullName, user.JobTitle, user.Posts, user.EventsOrganized,
+                user.Documents,
+                user.UserRoles.Select(r => r.Role.Name).ToArray());
         }
 
         return null;
@@ -107,7 +109,9 @@ public class AuthService(
         if (id != Guid.Empty)
         {
             var user = await userRepository.FindByIdAsync(id);
-            return new UserDto(id, user.Email, user.FullName, user.UserRoles.Select(r => r.Role.Name).ToArray());
+            return new UserDto(id, user.Email, user.FullName, user.JobTitle, user.Posts, user.EventsOrganized,
+                user.Documents,
+                user.UserRoles.Select(r => r.Role.Name).ToArray());
         }
 
         return null;

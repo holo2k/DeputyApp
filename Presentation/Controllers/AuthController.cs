@@ -44,12 +44,9 @@ public class AuthController(IAuthService auth) : ControllerBase
 
         var user = await auth.CreateUserAsync(req.Email, req.FullName, req.JobTitle, req.Password,
             req.Roles ?? new[] { "" });
-        var dto = new UserDto(
-            user.Id,
-            user.Email,
-            user.FullName,
-            user.UserRoles.Select(ur => ur.Role.Name).ToArray()
-        );
+        var dto = new UserDto(user.Id, user.Email, user.FullName, user.JobTitle, user.Posts, user.EventsOrganized,
+            user.Documents,
+            user.UserRoles.Select(r => r.Role.Name).ToArray());
         return CreatedAtAction(nameof(Get), new { id = user.Id }, dto);
     }
 

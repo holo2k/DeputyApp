@@ -1,4 +1,6 @@
-﻿namespace Domain.Entities;
+﻿using System.Text.Json.Serialization;
+
+namespace Domain.Entities;
 
 public class Document
 {
@@ -8,7 +10,9 @@ public class Document
     public string ContentType { get; set; } = string.Empty;
     public long Size { get; set; }
     public Guid? UploadedById { get; set; }
-    public User? UploadedBy { get; set; }
+
+    [JsonIgnore] public User? UploadedBy { get; set; }
+
     public Guid? CatalogId { get; set; }
     public Catalog? Catalog { get; set; }
     public Guid? PostId { get; set; }

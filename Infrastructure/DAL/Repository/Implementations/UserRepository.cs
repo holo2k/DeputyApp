@@ -16,6 +16,9 @@ public class UserRepository(AppDbContext db) : GenericRepository<User>(db), IUse
         return await _set
             .Include(x => x.UserRoles)
             .ThenInclude(x => x.Role)
+            .Include(x => x.Documents)
+            .Include(x => x.Posts)
+            .Include(x => x.EventsOrganized)
             .FirstOrDefaultAsync(u => u.Id == id);
     }
 }

@@ -1,4 +1,6 @@
-﻿namespace Domain.Entities;
+﻿using System.Text.Json.Serialization;
+
+namespace Domain.Entities;
 
 public class Event
 {
@@ -9,7 +11,9 @@ public class Event
     public DateTimeOffset EndAt { get; set; }
     public string? Location { get; set; }
     public Guid? OrganizerId { get; set; }
-    public User? Organizer { get; set; }
+
+    [JsonIgnore] public User? Organizer { get; set; }
+
     public bool IsPublic { get; set; } = true;
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 }
