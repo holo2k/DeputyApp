@@ -4,6 +4,7 @@ using System.Text;
 using Application.Notifications;
 using Application.Services;
 using Application.Services.Abstractions;
+using Application.Services.Implementations;
 using Application.Storage;
 using DeputyApp.DAL.UnitOfWork;
 using DotNetEnv;
@@ -36,8 +37,8 @@ public static class Program
 
         var app = builder.Build();
 
+        await EventNotificationInitializer.RegisterAsync(app.Services);
         await InitializeDatabaseAsync(app);
-
         ConfigurePipeline(app);
 
         try
@@ -85,22 +86,34 @@ public static class Program
         var conn = config.GetValue<string>("DB_CONNECTION") ??
                    "Host=localhost;Port=5435;Database=deputy;Username=postgres;Password=postgres";
 
-        // DbContext registration
         builder.Services.InitializeDatabase(conn);
 
-        // Repositories / UoW
         builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
         builder.Services.AddScoped<IUserRepository, UserRepository>();
         builder.Services.AddScoped<ICatalogRepository, CatalogRepository>();
 
-        // Infrastructure and helpers
         builder.Services.AddSingleton<IBlackListService, BlackListService>();
         builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
-        // Application services
         builder.Services.AddDeputyAppServices();
+        builder.Services.AddScoped<IEventService, EventService>();
 
-        // CORS
+        var tgToken = config.GetValue<string>("TELEGRAM_BOT_TOKEN") ?? "";
+        var tgChatId = config.GetValue<string>("TELEGRAM_CHAT_ID") ?? "";
+
+        builder.Services.AddSingleton<ITelegramBotClient>(_ =>
+            new TelegramBotClient(tgToken));
+
+        builder.Services.AddScoped<TelegramNotificationService>(sp =>
+        {
+            var botClient = sp.GetRequiredService<ITelegramBotClient>();
+            return new TelegramNotificationService(botClient, tgChatId);
+        });
+
+        builder.Services.AddHostedService<TelegramBotWorker>();
+        builder.Services.AddScoped<TelegramMessageHandler>();
+        builder.Services.AddScoped<EventNotificationHandler>();
+
         builder.Services.AddCors(options =>
         {
             options.AddPolicy("AllowAll", policy =>
@@ -111,10 +124,8 @@ public static class Program
             });
         });
 
-        // Authentication JWT
         ConfigureJwtAuthentication(builder);
 
-        // MinIO storage options + registration
         var minioOptions = new MinioOptions
         {
             Endpoint = config.GetValue<string>("MINIO_ENDPOINT") ?? "localhost:9000",
@@ -125,18 +136,6 @@ public static class Program
         builder.Services.AddSingleton(minioOptions);
         builder.Services.AddSingleton<IFileStorage, MinioFileStorage>();
 
-        // Telegram notifier
-        var tgToken = config.GetValue<string>("TELEGRAM_BOT_TOKEN") ?? "";
-        builder.Services.AddSingleton<ITelegramBotClient>(sp => new TelegramBotClient(tgToken));
-        builder.Services.AddSingleton(sp => new TelegramNotificationService(
-            sp.GetRequiredService<ITelegramBotClient>(),
-            null
-        ));
-        builder.Services.AddHostedService<TelegramBotWorker>();
-        builder.Services.AddScoped<TelegramMessageHandler>();
-        builder.Services.AddScoped<EventNotificationHandler>();
-
-        // Controllers + Swagger
         builder.Services.AddControllers();
         builder.Services.AddEndpointsApiExplorer();
         ConfigureSwagger(builder);
@@ -218,33 +217,24 @@ public static class Program
         var provider = scope.ServiceProvider;
         var appDbContext = provider.GetRequiredService<AppDbContext>();
         var hasher = provider.GetRequiredService<IPasswordHasher>();
-
-        // Migrate with retries. DbContextInitializer handles retry/.
         await DbContextInitializer.Migrate(appDbContext, hasher);
     }
 
     private static void ConfigurePipeline(WebApplication app)
     {
         app.UseDeveloperExceptionPage();
-
         app.UseSwagger();
         app.UseSwaggerUI(c =>
         {
             c.SwaggerEndpoint("/swagger/v1/swagger.json", "Deputy API v1");
             c.RoutePrefix = string.Empty;
         });
-
         app.UseCors("AllowAll");
-
         app.UseMiddleware<JwtBlacklistMiddleware>();
-
         app.UseHttpsRedirection();
-
         app.UseRouting();
-
         app.UseAuthentication();
         app.UseAuthorization();
-
         app.MapControllers();
     }
 }

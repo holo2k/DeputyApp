@@ -1,4 +1,5 @@
-﻿using Application.Services.Abstractions;
+﻿using Application.Notifications;
+using Application.Services.Abstractions;
 using DeputyApp.DAL.UnitOfWork;
 using Domain.Entities;
 
@@ -7,11 +8,14 @@ namespace Application.Services.Implementations;
 public class EventService : IEventService
 {
     private readonly IUnitOfWork _uow;
+    private readonly EventNotificationHandler _notificationHandler;
+
     public event Func<Event, Task>? EventCreatedOrUpdated;
 
-    public EventService(IUnitOfWork uow)
+    public EventService(IUnitOfWork uow, EventNotificationHandler notificationHandler)
     {
         _uow = uow;
+        _notificationHandler = notificationHandler;
     }
 
     public async Task<Event> CreateAsync(Event e)
@@ -21,8 +25,7 @@ public class EventService : IEventService
         await _uow.Events.AddAsync(e);
         await _uow.SaveChangesAsync();
 
-        if (EventCreatedOrUpdated != null)
-            await EventCreatedOrUpdated.Invoke(e);
+        await _notificationHandler.OnEventCreatedOrUpdated(e);
 
         return e;
     }

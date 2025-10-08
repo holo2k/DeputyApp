@@ -18,42 +18,34 @@ public class TelegramBotWorker : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var receiverOptions = new ReceiverOptions
-        {
-            AllowedUpdates = new[] { UpdateType.Message, UpdateType.CallbackQuery }
-        };
+        Console.WriteLine($"Bot username: {(await _botClient.GetMe()).Username}");
 
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
+        await _botClient.DeleteWebhook(cancellationToken: stoppingToken);
+        Console.WriteLine("Webhook удален, запускаем polling...");
+
+        var receiverOptions = new ReceiverOptions { AllowedUpdates = new[] { UpdateType.Message } };
 
         _botClient.StartReceiving(
-            async (client, update, token) =>
+            async (bot, update, token) =>
             {
-                using var scope = _scopeFactory.CreateScope();
-                var messageHandler = scope.ServiceProvider.GetRequiredService<TelegramMessageHandler>();
-
-                if (update.Message != null && update.Message.Text?.StartsWith("/start") == true)
+                Console.WriteLine("Получено обновление!");
+                if (update.Message != null && !string.IsNullOrEmpty(update.Message.Text))
                 {
+                    await using var scope = _scopeFactory.CreateAsyncScope();
+                    var messageHandler = scope.ServiceProvider.GetRequiredService<TelegramMessageHandler>();
                     await messageHandler.HandleStartCommand(update.Message.Chat.Id);
-                    Console.WriteLine($"Added chat {update.Message.Chat.Id}");
-                }
-                else if (update.CallbackQuery?.Message != null)
-                {
-                    await messageHandler.HandleStartCommand(update.CallbackQuery.Message.Chat.Id);
-                    Console.WriteLine($"Added chat {update.CallbackQuery.Message.Chat.Id}");
+
                 }
             },
-            (client, ex, token) =>
+            async (bot, exception, token) =>
             {
-                Console.WriteLine($"Polling error: {ex.Message}");
-                return Task.CompletedTask;
+                Console.WriteLine($"Ошибка polling: {exception.Message}");
             },
             receiverOptions,
-            cts.Token
+            stoppingToken
         );
 
-        Console.WriteLine("TelegramBotWorker started");
-
-        // Ждём пока токен отмены не сработает, иначе воркер завершится сразу
-        await Task.Delay(-1, stoppingToken);
+        Console.WriteLine("TelegramBotWorker запущен");
+        await Task.Delay(Timeout.Infinite, stoppingToken); 
     }
 }
