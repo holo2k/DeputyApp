@@ -16,12 +16,14 @@ public class TelegramBotWorker : BackgroundService
         _scopeFactory = scopeFactory;
     }
 
-    protected override Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         var receiverOptions = new ReceiverOptions
         {
             AllowedUpdates = new[] { UpdateType.Message, UpdateType.CallbackQuery }
         };
+
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
 
         _botClient.StartReceiving(
             async (client, update, token) =>
@@ -32,10 +34,12 @@ public class TelegramBotWorker : BackgroundService
                 if (update.Message != null && update.Message.Text?.StartsWith("/start") == true)
                 {
                     await messageHandler.HandleStartCommand(update.Message.Chat.Id);
+                    Console.WriteLine($"Added chat {update.Message.Chat.Id}");
                 }
                 else if (update.CallbackQuery?.Message != null)
                 {
                     await messageHandler.HandleStartCommand(update.CallbackQuery.Message.Chat.Id);
+                    Console.WriteLine($"Added chat {update.CallbackQuery.Message.Chat.Id}");
                 }
             },
             (client, ex, token) =>
@@ -44,9 +48,12 @@ public class TelegramBotWorker : BackgroundService
                 return Task.CompletedTask;
             },
             receiverOptions,
-            stoppingToken
+            cts.Token
         );
 
-        return Task.CompletedTask;
+        Console.WriteLine("TelegramBotWorker started");
+
+        // Ждём пока токен отмены не сработает, иначе воркер завершится сразу
+        await Task.Delay(-1, stoppingToken);
     }
 }
