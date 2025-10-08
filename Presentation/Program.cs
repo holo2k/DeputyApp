@@ -16,6 +16,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Shared.Encrypt;
 using Shared.Middleware;
+using Telegram.Bot;
 
 Env.Load();
 
@@ -26,11 +27,14 @@ var conn = config.GetValue<string>("DB_CONNECTION") ??
            "Host=localhost;Port=5435;Database=deputy;Username=postgres;Password=postgres";
 builder.Services.InitializeDatabase(conn);
 
+// Регистрация UnitOfWork и репозиториев
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ICatalogRepository, CatalogRepository>();
+
 builder.Services.AddSingleton<IBlackListService, BlackListService>();
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+
 builder.Services.AddDeputyAppServices();
 
 builder.Services.AddCors(options =>
@@ -79,11 +83,15 @@ builder.Services.AddSingleton(minioOptions);
 builder.Services.AddSingleton<IFileStorage, MinioFileStorage>();
 
 var tgToken = config.GetValue<string>("TELEGRAM_BOT_TOKEN") ?? "";
-var tgChat = config.GetValue<string>("TELEGRAM_CHAT_ID") ?? "";
-builder.Services.AddHttpClient<INotificationService, TelegramNotificationService>()
-    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler());
-builder.Services.AddSingleton<INotificationService>(sp =>
-    new TelegramNotificationService(sp.GetRequiredService<HttpClient>(), tgToken, tgChat));
+builder.Services.AddSingleton<ITelegramBotClient>(sp => new TelegramBotClient(tgToken));
+builder.Services.AddSingleton(sp => new TelegramNotificationService(
+    sp.GetRequiredService<ITelegramBotClient>(), 
+    defaultChatId: null
+));
+builder.Services.AddHostedService<TelegramBotWorker>();
+builder.Services.AddScoped<TelegramMessageHandler>();
+builder.Services.AddScoped<EventNotificationHandler>();
+
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

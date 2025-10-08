@@ -7,6 +7,7 @@ namespace Application.Services.Implementations;
 public class EventService : IEventService
 {
     private readonly IUnitOfWork _uow;
+    public event Func<Event, Task>? EventCreatedOrUpdated;
 
     public EventService(IUnitOfWork uow)
     {
@@ -19,6 +20,10 @@ public class EventService : IEventService
         e.CreatedAt = DateTimeOffset.UtcNow;
         await _uow.Events.AddAsync(e);
         await _uow.SaveChangesAsync();
+
+        if (EventCreatedOrUpdated != null)
+            await EventCreatedOrUpdated.Invoke(e);
+
         return e;
     }
 

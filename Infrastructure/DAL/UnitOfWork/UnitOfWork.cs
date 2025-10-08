@@ -20,6 +20,7 @@ public class UnitOfWork : IUnitOfWork
         Documents = new DocumentRepository(db);
         Analytics = new AnalyticsRepository(db);
         Feedbacks = new FeedbackRepository(db);
+        Chats = new ChatRepository(db);
     }
 
     public IUserRepository Users { get; }
@@ -27,6 +28,7 @@ public class UnitOfWork : IUnitOfWork
     public ICatalogRepository Catalogs { get; set; }
     public IPostRepository Posts { get; }
     public IEventRepository Events { get; }
+    public IChatRepository Chats { get; }
     public IDocumentRepository Documents { get; }
     public IAnalyticsRepository Analytics { get; }
     public IFeedbackRepository Feedbacks { get; }
