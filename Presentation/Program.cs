@@ -18,6 +18,7 @@ using Serilog;
 using Serilog.Events;
 using Shared.Encrypt;
 using Shared.Middleware;
+using Telegram.Bot;
 
 namespace Presentation;
 

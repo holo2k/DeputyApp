@@ -12,6 +12,7 @@ public interface IUnitOfWork : IAsyncDisposable
     IDocumentRepository Documents { get; }
     IAnalyticsRepository Analytics { get; }
     IFeedbackRepository Feedbacks { get; }
+    IChatRepository Chats { get; }
 
 
     Task<int> SaveChangesAsync();
