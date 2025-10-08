@@ -4,39 +4,46 @@ using Domain.Entities;
 
 namespace Application.Services.Implementations;
 
-public class UserService(IUnitOfWork uow) : IUserService
+public class UserService : IUserService
 {
+    private readonly IUnitOfWork _uow;
+
+    public UserService(IUnitOfWork uow)
+    {
+        _uow = uow;
+    }
+
     public async Task<User?> GetByIdAsync(Guid id)
     {
-        return await uow.Users.GetByIdAsync(id);
+        return await _uow.Users.GetByIdAsync(id);
     }
 
     public async Task<User?> GetByEmailAsync(string email)
     {
-        return await uow.Users.FindSingleAsync(u => u.Email == email);
+        return await _uow.Users.FindSingleAsync(u => u.Email == email);
     }
 
 
     public async Task AssignRoleAsync(Guid userId, string roleName)
     {
-        var user = await uow.Users.GetByIdAsync(userId);
+        var user = await _uow.Users.GetByIdAsync(userId);
         if (user == null) throw new KeyNotFoundException("User not found");
-        var role = (await uow.Roles.ListAsync(r => r.Name == roleName)).FirstOrDefault();
+        var role = (await _uow.Roles.ListAsync(r => r.Name == roleName)).FirstOrDefault();
         if (role == null)
         {
             role = new Role { Id = Guid.NewGuid(), Name = roleName };
-            await uow.Roles.AddAsync(role);
+            await _uow.Roles.AddAsync(role);
         }
 
         if (user.UserRoles.All(ur => ur.RoleId != role.Id))
             user.UserRoles.Add(new UserRole { RoleId = role.Id, UserId = user.Id });
-        uow.Users.Update(user);
-        await uow.SaveChangesAsync();
+        _uow.Users.Update(user);
+        await _uow.SaveChangesAsync();
     }
 
 
     public async Task<IEnumerable<User>> ListAsync(int skip = 0, int take = 50)
     {
-        return await uow.Users.ListAsync(null, skip, take);
+        return await _uow.Users.ListAsync(null, skip, take);
     }
 }

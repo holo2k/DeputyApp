@@ -4,11 +4,16 @@ using Domain.Entities;
 
 namespace Application.Services.Implementations;
 
-public class DocumentService(IUnitOfWork uow, IFileStorage storage) : IDocumentService
+public class DocumentService : IDocumentService
 {
-    private readonly IFileStorage _storage = storage;
-    private readonly IUnitOfWork _uow = uow;
+    private readonly IFileStorage _storage;
+    private readonly IUnitOfWork _uow;
 
+    public DocumentService(IFileStorage storage, IUnitOfWork uow)
+    {
+        _storage = storage;
+        _uow = uow;
+    }
 
     public async Task DeleteAsync(Guid id)
     {

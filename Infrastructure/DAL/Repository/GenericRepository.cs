@@ -5,50 +5,50 @@ namespace Infrastructure.DAL.Repository;
 
 public class GenericRepository<T> : IRepository<T> where T : class
 {
-    protected readonly AppDbContext _db;
-    protected readonly DbSet<T> _set;
+    private readonly AppDbContext _db;
+    protected readonly DbSet<T> Set;
 
     public GenericRepository(AppDbContext db)
     {
         _db = db;
-        _set = db.Set<T>();
+        Set = db.Set<T>();
     }
 
 
     public virtual async Task AddAsync(T entity)
     {
-        await _set.AddAsync(entity);
+        await Set.AddAsync(entity);
     }
 
 
     public virtual async Task AddRangeAsync(IEnumerable<T> entities)
     {
-        await _set.AddRangeAsync(entities);
+        await Set.AddRangeAsync(entities);
     }
 
 
     public virtual void Delete(T entity)
     {
-        _set.Remove(entity);
+        Set.Remove(entity);
     }
 
 
     public virtual void DeleteRange(IEnumerable<T> entities)
     {
-        _set.RemoveRange(entities);
+        Set.RemoveRange(entities);
     }
 
 
     public virtual async Task<T?> GetByIdAsync(Guid id)
     {
-        return await _set.FindAsync(id);
+        return await Set.FindAsync(id);
     }
 
 
     public virtual async Task<T?> GetByIdAsync(Guid id, params Expression<Func<T, object>>[] includes)
     {
         if (includes == null || includes.Length == 0) return await GetByIdAsync(id);
-        var query = ApplyIncludes(_set.AsNoTracking(), includes);
+        var query = ApplyIncludes(Set.AsNoTracking(), includes);
         return await query.FirstOrDefaultAsync(e => EF.Property<Guid>(e, "Id") == id);
     }
 
@@ -56,7 +56,7 @@ public class GenericRepository<T> : IRepository<T> where T : class
     public virtual async Task<IEnumerable<T>> ListAsync(Expression<Func<T, bool>>? predicate = null, int? skip = null,
         int? take = null, params Expression<Func<T, object>>[] includes)
     {
-        var q = _set.AsNoTracking();
+        var q = Set.AsNoTracking();
         q = ApplyIncludes(q, includes);
         if (predicate != null) q = q.Where(predicate);
         if (skip.HasValue) q = q.Skip(skip.Value);
@@ -67,27 +67,27 @@ public class GenericRepository<T> : IRepository<T> where T : class
 
     public virtual async Task<int> CountAsync(Expression<Func<T, bool>>? predicate = null)
     {
-        if (predicate == null) return await _set.CountAsync();
-        return await _set.CountAsync(predicate);
+        if (predicate == null) return await Set.CountAsync();
+        return await Set.CountAsync(predicate);
     }
 
 
     public virtual async Task<bool> ExistsAsync(Expression<Func<T, bool>> predicate)
     {
-        return await _set.AnyAsync(predicate);
+        return await Set.AnyAsync(predicate);
     }
 
 
     public virtual void Update(T entity)
     {
-        _set.Update(entity);
+        Set.Update(entity);
     }
 
 
     public virtual async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate,
         params Expression<Func<T, object>>[] includes)
     {
-        var q = _set.AsNoTracking();
+        var q = Set.AsNoTracking();
         q = ApplyIncludes(q, includes);
         q = q.Where(predicate);
         return await q.ToListAsync();
@@ -97,7 +97,7 @@ public class GenericRepository<T> : IRepository<T> where T : class
     public virtual async Task<T?> FindSingleAsync(Expression<Func<T, bool>> predicate,
         params Expression<Func<T, object>>[] includes)
     {
-        var q = _set.AsNoTracking();
+        var q = Set.AsNoTracking();
         q = ApplyIncludes(q, includes);
         return await q.FirstOrDefaultAsync(predicate);
     }

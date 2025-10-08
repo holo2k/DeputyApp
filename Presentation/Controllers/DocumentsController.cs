@@ -8,13 +8,22 @@ namespace Presentation.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class DocumentsController(
-        IDocumentService docs,
-        IAuthService authService,
-        ICatalogService catalogService,
-        IUnitOfWork unitOfWork)
-    : ControllerBase
+public class DocumentsController : ControllerBase
 {
+    private readonly IAuthService _authService;
+    private readonly ICatalogService _catalogService;
+    private readonly IDocumentService _docs;
+    private readonly IUnitOfWork _unitOfWork;
+
+    public DocumentsController(IDocumentService docs, IAuthService authService, ICatalogService catalogService,
+        IUnitOfWork unitOfWork)
+    {
+        _docs = docs;
+        _authService = authService;
+        _catalogService = catalogService;
+        _unitOfWork = unitOfWork;
+    }
+
     /// <summary>
     ///     Загрузить документ на сервер.
     /// </summary>
@@ -31,15 +40,15 @@ public class DocumentsController(
     [RequestSizeLimit(50_000_000)]
     public async Task<IActionResult> Upload(IFormFile? file, [FromQuery] Guid catalogId)
     {
-        var userId = authService.GetCurrentUserId();
+        var userId = _authService.GetCurrentUserId();
         if (userId == Guid.Empty) return Unauthorized();
 
-        var userCatalog = await catalogService.GetByIdAsync(catalogId);
+        var userCatalog = await _catalogService.GetByIdAsync(catalogId);
         if (userCatalog?.OwnerId != userId) return Unauthorized("Нет доступа к чужому каталогу");
 
         if (file == null || file.Length == 0) return BadRequest("Файл обязателен");
         await using var s = file.OpenReadStream();
-        var uploaded = await docs.UploadAsync(file.FileName, s, file.ContentType, null, catalogId);
+        var uploaded = await _docs.UploadAsync(file.FileName, s, file.ContentType, null, catalogId);
         return Ok(uploaded);
     }
 
@@ -54,13 +63,13 @@ public class DocumentsController(
     [ProducesResponseType(typeof(List<Document>), 200)]
     public async Task<IActionResult> ByCatalog(Guid catalogId)
     {
-        var userId = authService.GetCurrentUserId();
+        var userId = _authService.GetCurrentUserId();
         if (userId == Guid.Empty) return Unauthorized();
 
-        var userCatalog = await catalogService.GetByIdAsync(catalogId);
+        var userCatalog = await _catalogService.GetByIdAsync(catalogId);
         if (userCatalog?.OwnerId != userId) return Unauthorized("Нет доступа к чужому каталогу");
 
-        var list = await docs.GetByCatalogAsync(catalogId);
+        var list = await _docs.GetByCatalogAsync(catalogId);
         return Ok(list);
     }
 
@@ -76,13 +85,13 @@ public class DocumentsController(
     [Authorize]
     public async Task<IActionResult> Delete(Guid id)
     {
-        var userId = authService.GetCurrentUserId();
+        var userId = _authService.GetCurrentUserId();
         if (userId == Guid.Empty) return Unauthorized();
 
-        var userDoc = await unitOfWork.Documents.GetByIdAsync(id);
+        var userDoc = await _unitOfWork.Documents.GetByIdAsync(id);
         if (userDoc?.UploadedById != userId) return Unauthorized("Нет доступа к чужому документу");
 
-        await docs.DeleteAsync(id);
+        await _docs.DeleteAsync(id);
         return NoContent();
     }
 }

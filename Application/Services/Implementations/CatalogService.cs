@@ -5,13 +5,22 @@ using Infrastructure.DAL.Repository.Abstractions;
 
 namespace Application.Services.Implementations;
 
-public class CatalogService(ICatalogRepository repo, AppDbContext db) : ICatalogService
+public class CatalogService : ICatalogService
 {
+    private readonly ICatalogRepository _catalogRepository;
+    private readonly AppDbContext _db;
+
+    public CatalogService(ICatalogRepository catalogRepository, AppDbContext db)
+    {
+        _catalogRepository = catalogRepository;
+        _db = db;
+    }
+
     public async Task<Catalog> CreateAsync(string name, Guid? ownerId, Guid? parentCatalogId = null)
     {
         if (parentCatalogId.HasValue)
         {
-            var parent = await repo.GetByIdAsync(parentCatalogId.Value);
+            var parent = await _catalogRepository.GetByIdAsync(parentCatalogId.Value);
             if (parent == null)
                 throw new InvalidOperationException("Parent catalog not found");
         }
@@ -24,45 +33,45 @@ public class CatalogService(ICatalogRepository repo, AppDbContext db) : ICatalog
             ParentCatalogId = parentCatalogId
         };
 
-        await repo.AddAsync(catalog);
-        await db.SaveChangesAsync();
+        await _catalogRepository.AddAsync(catalog);
+        await _db.SaveChangesAsync();
         return catalog;
     }
 
     public async Task<Catalog?> GetByIdAsync(Guid id)
     {
-        return await repo.GetByIdAsync(id);
+        return await _catalogRepository.GetByIdAsync(id);
     }
 
     public async Task<List<Catalog>> GetByOwnerAsync(Guid ownerId)
     {
-        return await repo.GetByOwnerAsync(ownerId);
+        return await _catalogRepository.GetByOwnerAsync(ownerId);
     }
 
     public async Task<bool> DeleteAsync(Guid id)
     {
-        var catalog = await repo.GetByIdAsync(id);
+        var catalog = await _catalogRepository.GetByIdAsync(id);
         if (catalog == null) return false;
 
         if (catalog.Children.Count > 0)
             throw new InvalidOperationException("Cannot delete catalog with child catalogs");
 
-        await repo.DeleteAsync(catalog);
-        await db.SaveChangesAsync();
+        await _catalogRepository.DeleteAsync(catalog);
+        await _db.SaveChangesAsync();
         return true;
     }
 
 
     public async Task<Catalog?> UpdateAsync(Guid id, string newName, Guid? newParentCatalogId = null)
     {
-        var catalog = await repo.GetByIdAsync(id);
+        var catalog = await _catalogRepository.GetByIdAsync(id);
         if (catalog == null) return null;
 
         catalog.Name = newName;
         catalog.ParentCatalogId = newParentCatalogId;
 
-        await repo.UpdateAsync(catalog);
-        await db.SaveChangesAsync();
+        await _catalogRepository.UpdateAsync(catalog);
+        await _db.SaveChangesAsync();
         return catalog;
     }
 }

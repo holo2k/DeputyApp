@@ -8,8 +8,15 @@ namespace Presentation.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class AuthController(IAuthService auth) : ControllerBase
+public class AuthController : ControllerBase
 {
+    private readonly IAuthService _auth;
+
+    public AuthController(IAuthService auth)
+    {
+        _auth = auth;
+    }
+
     /// <summary>
     ///     Аутентификация пользователя и получение JWT токена.
     /// </summary>
@@ -22,7 +29,7 @@ public class AuthController(IAuthService auth) : ControllerBase
     [ProducesResponseType(typeof(AuthResult), 200)]
     public async Task<IActionResult> Login([FromBody] LoginRequest req)
     {
-        var res = await auth.AuthenticateAsync(req.Email, req.Password);
+        var res = await _auth.AuthenticateAsync(req.Email, req.Password);
         if (res == null) return Unauthorized();
         return Ok(res);
     }
@@ -39,10 +46,10 @@ public class AuthController(IAuthService auth) : ControllerBase
     [ProducesResponseType(typeof(User), 200)]
     public async Task<IActionResult> Create([FromBody] CreateUserRequest req)
     {
-        var currentUser = await auth.GetCurrentUser();
+        var currentUser = await _auth.GetCurrentUser();
         if (currentUser == null || currentUser.Roles.All(x => x != "Admin")) return Unauthorized();
 
-        var user = await auth.CreateUserAsync(req.Email, req.FullName, req.JobTitle, req.Password,
+        var user = await _auth.CreateUserAsync(req.Email, req.FullName, req.JobTitle, req.Password,
             req.Roles ?? new[] { "" });
         var dto = new UserDto(user.Id, user.Email, user.FullName, user.JobTitle, user.Posts, user.EventsOrganized,
             user.Documents,
@@ -62,7 +69,7 @@ public class AuthController(IAuthService auth) : ControllerBase
     [ProducesResponseType(typeof(User), 200)]
     public async Task<IActionResult> Get([FromRoute] Guid id)
     {
-        var user = await auth.GetUserById(id);
+        var user = await _auth.GetUserById(id);
         if (user == null) return NotFound();
         return Ok(user);
     }
@@ -78,7 +85,7 @@ public class AuthController(IAuthService auth) : ControllerBase
     [ProducesResponseType(typeof(UserDto), 200)]
     public async Task<IActionResult> Get()
     {
-        var user = await auth.GetCurrentUser();
+        var user = await _auth.GetCurrentUser();
         if (user == null) return Unauthorized();
         return Ok(user);
     }

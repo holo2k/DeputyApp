@@ -20,6 +20,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Элементы решен
 EndProject
 Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker", "Docker\docker.dcproj", "{A1B2C3D4-E5F6-7890-1234-56789ABCDEF0}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeputyApp.Tests", "DeputyApp.Tests\DeputyApp.Tests.csproj", "{622DB3B9-F1F0-4549-8BB2-F3181AC57AC5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -50,12 +52,16 @@ Global
 		{A1B2C3D4-E5F6-7890-1234-56789ABCDEF0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A1B2C3D4-E5F6-7890-1234-56789ABCDEF0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A1B2C3D4-E5F6-7890-1234-56789ABCDEF0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{622DB3B9-F1F0-4549-8BB2-F3181AC57AC5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{622DB3B9-F1F0-4549-8BB2-F3181AC57AC5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{622DB3B9-F1F0-4549-8BB2-F3181AC57AC5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{622DB3B9-F1F0-4549-8BB2-F3181AC57AC5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		FileExplorer = |Docker\
 		SolutionGuid = {21B132D5-E544-42B7-BB56-E139DAC8B953}
+		FileExplorer = |Docker\
 	EndGlobalSection
 EndGlobal

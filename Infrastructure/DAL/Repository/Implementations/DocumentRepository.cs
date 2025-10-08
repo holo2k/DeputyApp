@@ -4,10 +4,17 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.DAL.Repository.Implementations;
 
-public class DocumentRepository(AppDbContext db) : GenericRepository<Document>(db), IDocumentRepository
+public class DocumentRepository : GenericRepository<Document>, IDocumentRepository
 {
+    private AppDbContext _db;
+
+    public DocumentRepository(AppDbContext db) : base(db)
+    {
+        _db = db;
+    }
+
     public async Task<IEnumerable<Document>> GetByCatalogAsync(Guid catalogId)
     {
-        return await _set.AsNoTracking().Where(d => d.CatalogId == catalogId).ToListAsync();
+        return await Set.AsNoTracking().Where(d => d.CatalogId == catalogId).ToListAsync();
     }
 }

@@ -3,8 +3,15 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.DAL;
 
-public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
+public class AppDbContext : DbContext
 {
+    private DbContextOptions<AppDbContext> _options;
+
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
+    {
+        _options = options;
+    }
+
     public DbSet<User> Users => Set<User>();
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<UserRole> UserRoles => Set<UserRole>();

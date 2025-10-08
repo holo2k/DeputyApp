@@ -3,10 +3,17 @@ using Infrastructure.DAL.Repository.Abstractions;
 
 namespace Infrastructure.DAL.Repository.Implementations;
 
-public class AnalyticsRepository(AppDbContext db) : GenericRepository<AnalyticsEvent>(db), IAnalyticsRepository
+public class AnalyticsRepository : GenericRepository<AnalyticsEvent>, IAnalyticsRepository
 {
+    private readonly AppDbContext _db;
+
+    public AnalyticsRepository(AppDbContext db) : base(db)
+    {
+        _db = db;
+    }
+
     public async Task AddEventAsync(AnalyticsEvent analyticsEvent)
     {
-        await _set.AddAsync(analyticsEvent);
+        await Set.AddAsync(analyticsEvent);
     }
 }

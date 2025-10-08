@@ -4,11 +4,18 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.DAL.Repository.Implementations;
 
-public class PostRepository(AppDbContext db) : GenericRepository<Post>(db), IPostRepository
+public class PostRepository : GenericRepository<Post>, IPostRepository
 {
+    private AppDbContext _db;
+
+    public PostRepository(AppDbContext db) : base(db)
+    {
+        _db = db;
+    }
+
     public async Task<IEnumerable<Post>> GetPublishedAsync(int limit = 50)
     {
-        return await _set.AsNoTracking()
+        return await Set.AsNoTracking()
             .Where(p => p.PublishedAt != null)
             .OrderByDescending(p => p.PublishedAt)
             .Take(limit)

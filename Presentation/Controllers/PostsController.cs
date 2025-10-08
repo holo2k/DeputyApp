@@ -9,8 +9,17 @@ namespace Presentation.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class PostsController(IPostService posts, IAuthService authService) : ControllerBase
+public class PostsController : ControllerBase
 {
+    private readonly IAuthService _authService;
+    private readonly IPostService _posts;
+
+    public PostsController(IPostService posts, IAuthService authService)
+    {
+        _posts = posts;
+        _authService = authService;
+    }
+
     /// <summary>
     ///     Получить список опубликованных постов.
     /// </summary>
@@ -25,7 +34,7 @@ public class PostsController(IPostService posts, IAuthService authService) : Con
     [ProducesResponseType(typeof(List<PostResponse>), 200)]
     public async Task<IActionResult> GetPublished([FromQuery] int skip = 0, [FromQuery] int take = 20)
     {
-        var list = await posts.GetPublishedAsync(skip, take);
+        var list = await _posts.GetPublishedAsync(skip, take);
 
         var respList = list.Select(p => new PostResponse
             {
@@ -58,7 +67,7 @@ public class PostsController(IPostService posts, IAuthService authService) : Con
     [Authorize]
     public async Task<IActionResult> Create([FromBody] CreatePostRequest req)
     {
-        var userId = authService.GetCurrentUserId();
+        var userId = _authService.GetCurrentUserId();
         if (userId == Guid.Empty) return Unauthorized();
 
         var post = new Post
@@ -71,7 +80,7 @@ public class PostsController(IPostService posts, IAuthService authService) : Con
             CreatedById = userId
         };
 
-        var created = await posts.CreateAsync(post);
+        var created = await _posts.CreateAsync(post);
 
         var resp = new PostResponse
         {
@@ -84,7 +93,7 @@ public class PostsController(IPostService posts, IAuthService authService) : Con
             PublishedAt = created.PublishedAt
         };
 
-        await posts.PublishAsync(resp.Id); //опубликовать?
+        await _posts.PublishAsync(resp.Id); //опубликовать?
         return CreatedAtAction(nameof(GetById), new { id = resp.Id }, resp);
     }
 
@@ -99,7 +108,7 @@ public class PostsController(IPostService posts, IAuthService authService) : Con
     [ProducesResponseType(typeof(PostResponse), 200)]
     public async Task<IActionResult> GetById(Guid id)
     {
-        var p = await posts.GetByIdAsync(id);
+        var p = await _posts.GetByIdAsync(id);
         if (p == null) return NotFound();
 
         var resp = new PostResponse
@@ -126,7 +135,7 @@ public class PostsController(IPostService posts, IAuthService authService) : Con
     [Authorize]
     public async Task<IActionResult> Delete(Guid id)
     {
-        await posts.DeleteAsync(id);
+        await _posts.DeleteAsync(id);
         return NoContent();
     }
 }

@@ -9,8 +9,17 @@ namespace Presentation.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class FeedbackController(IFeedbackService feedback, IAuthService authService) : ControllerBase
+public class FeedbackController : ControllerBase
 {
+    private readonly IAuthService _authService;
+    private readonly IFeedbackService _feedback;
+
+    public FeedbackController(IFeedbackService feedback, IAuthService authService)
+    {
+        _feedback = feedback;
+        _authService = authService;
+    }
+
     /// <summary>
     ///     Отправка обратной связи пользователем.
     /// </summary>
@@ -27,7 +36,7 @@ public class FeedbackController(IFeedbackService feedback, IAuthService authServ
     [ProducesResponseType(typeof(FeedbackDto), 200)]
     public async Task<IActionResult> Send([FromBody] FeedbackRequest dto)
     {
-        var userId = authService.GetCurrentUserId();
+        var userId = _authService.GetCurrentUserId();
         if (userId == Guid.Empty) return Unauthorized();
 
         var fb = new Feedback
@@ -40,7 +49,7 @@ public class FeedbackController(IFeedbackService feedback, IAuthService authServ
             CreatedAt = DateTimeOffset.UtcNow
         };
 
-        var created = await feedback.CreateAsync(fb);
+        var created = await _feedback.CreateAsync(fb);
 
         var response = new FeedbackDto
         {
@@ -70,7 +79,7 @@ public class FeedbackController(IFeedbackService feedback, IAuthService authServ
     [Authorize]
     public async Task<IActionResult> Recent([FromQuery] int days = 30)
     {
-        var list = await feedback.RecentAsync(days);
+        var list = await _feedback.RecentAsync(days);
 
         var dtoList = list.Select(f => new FeedbackDto
         {

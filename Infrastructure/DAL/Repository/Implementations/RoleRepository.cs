@@ -4,10 +4,17 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.DAL.Repository.Implementations;
 
-public class RoleRepository(AppDbContext db) : GenericRepository<Role>(db), IRoleRepository
+public class RoleRepository : GenericRepository<Role>, IRoleRepository
 {
+    private readonly AppDbContext _db;
+
+    public RoleRepository(AppDbContext db) : base(db)
+    {
+        _db = db;
+    }
+
     public async Task<Role?> FindByNameAsync(string name)
     {
-        return await _set.AsNoTracking().FirstOrDefaultAsync(r => r.Name == name);
+        return await Set.AsNoTracking().FirstOrDefaultAsync(r => r.Name == name);
     }
 }

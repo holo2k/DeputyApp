@@ -14,20 +14,31 @@ using Shared.Middleware;
 
 namespace Application.Services.Implementations;
 
-public class AuthService(
-        IUnitOfWork uow,
-        IPasswordHasher hasher,
-        IBlackListService blacklistService,
-        IConfiguration configuration,
-        IHttpContextAccessor httpContextAccessor,
-        IUserRepository userRepository)
-    : IAuthService
+public class AuthService : IAuthService
 {
+    private readonly IBlackListService _blacklistService;
+    private readonly IConfiguration _configuration;
+    private readonly IPasswordHasher _hasher;
+    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IUnitOfWork _uow;
+    private readonly IUserRepository _userRepository;
+
+    public AuthService(IUnitOfWork uow, IPasswordHasher hasher, IBlackListService blacklistService,
+        IConfiguration configuration, IHttpContextAccessor httpContextAccessor, IUserRepository userRepository)
+    {
+        _uow = uow;
+        _hasher = hasher;
+        _blacklistService = blacklistService;
+        _configuration = configuration;
+        _httpContextAccessor = httpContextAccessor;
+        _userRepository = userRepository;
+    }
+
     public async Task<AuthResult?> AuthenticateAsync(string email, string password)
     {
-        var user = await uow.Users.FindSingleAsync(u => u.Email == email);
+        var user = await _uow.Users.FindSingleAsync(u => u.Email == email);
         if (user == null) return null;
-        if (!hasher.Verify(user.PasswordHash, user.Salt, password)) return null;
+        if (!_hasher.Verify(user.PasswordHash, user.Salt, password)) return null;
 
         var token = GenerateJwtToken(user);
 
@@ -38,7 +49,7 @@ public class AuthService(
     public async Task<User> CreateUserAsync(string email, string fullName, string jobTitle, string password,
         params string[] roleNames)
     {
-        if (await uow.Users.ExistsAsync(u => u.Email == email)) throw new InvalidOperationException("User exists");
+        if (await _uow.Users.ExistsAsync(u => u.Email == email)) throw new InvalidOperationException("User exists");
         var salt = Guid.NewGuid().ToString();
         var user = new User
         {
@@ -46,27 +57,27 @@ public class AuthService(
             Email = email,
             FullName = fullName,
             JobTitle = jobTitle,
-            PasswordHash = hasher.HashPassword(password, salt),
+            PasswordHash = _hasher.HashPassword(password, salt),
             Salt = salt,
             CreatedAt = DateTimeOffset.UtcNow
         };
-        await uow.Users.AddAsync(user);
+        await _uow.Users.AddAsync(user);
 
 
         foreach (var rn in roleNames)
         {
-            var role = (await uow.Roles.ListAsync(r => r.Name == rn)).FirstOrDefault();
+            var role = (await _uow.Roles.ListAsync(r => r.Name == rn)).FirstOrDefault();
             if (role == null)
             {
                 role = new Role { Id = Guid.NewGuid(), Name = rn };
-                await uow.Roles.AddAsync(role);
+                await _uow.Roles.AddAsync(role);
             }
 
             user.UserRoles.Add(new UserRole { RoleId = role.Id, UserId = user.Id });
         }
 
 
-        await uow.SaveChangesAsync();
+        await _uow.SaveChangesAsync();
         return user;
     }
 
@@ -76,7 +87,7 @@ public class AuthService(
 
         if (id != Guid.Empty)
         {
-            var user = await userRepository.FindByIdAsync(id);
+            var user = await _userRepository.FindByIdAsync(id);
             return new UserDto(id, user.Email, user.FullName, user.JobTitle, user.Posts, user.EventsOrganized,
                 user.Documents,
                 user.UserRoles.Select(r => r.Role.Name).ToArray());
@@ -87,7 +98,7 @@ public class AuthService(
 
     public Guid GetCurrentUserId()
     {
-        var claimsIdentity = httpContextAccessor.HttpContext?.User.Identity as ClaimsIdentity;
+        var claimsIdentity = _httpContextAccessor.HttpContext?.User.Identity as ClaimsIdentity;
         var id = Guid.Parse(claimsIdentity?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
         return id;
     }
@@ -95,20 +106,20 @@ public class AuthService(
 
     public List<string> GetCurrentUserRoles()
     {
-        var claimsIdentity = httpContextAccessor.HttpContext?.User.Identity as ClaimsIdentity;
+        var claimsIdentity = _httpContextAccessor.HttpContext?.User.Identity as ClaimsIdentity;
         return claimsIdentity?.FindAll(ClaimTypes.Role).Select(claim => claim.Value).ToList() ?? new List<string>();
     }
 
     public void Logout(string token)
     {
-        blacklistService.AddTokenToBlacklist(token);
+        _blacklistService.AddTokenToBlacklist(token);
     }
 
     public async Task<UserDto?> GetUserById(Guid id)
     {
         if (id != Guid.Empty)
         {
-            var user = await userRepository.FindByIdAsync(id);
+            var user = await _userRepository.FindByIdAsync(id);
             return new UserDto(id, user.Email, user.FullName, user.JobTitle, user.Posts, user.EventsOrganized,
                 user.Documents,
                 user.UserRoles.Select(r => r.Role.Name).ToArray());
@@ -137,10 +148,10 @@ public class AuthService(
         var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
         var token = new JwtSecurityToken(
-            configuration["Jwt:Issuer"],
-            configuration["Jwt:Audience"],
+            _configuration["Jwt:Issuer"],
+            _configuration["Jwt:Audience"],
             claims,
-            expires: DateTime.Now.AddMinutes(Convert.ToDouble(configuration["Jwt:ExpiresInMinutes"])),
+            expires: DateTime.Now.AddMinutes(Convert.ToDouble(_configuration["Jwt:ExpiresInMinutes"])),
             signingCredentials: credentials
         );
 

@@ -4,8 +4,15 @@ using Domain.Entities;
 
 namespace Application.Services.Implementations;
 
-public class AnalyticsService(IUnitOfWork uow) : IAnalyticsService
+public class AnalyticsService : IAnalyticsService
 {
+    private readonly IUnitOfWork _uow;
+
+    public AnalyticsService(IUnitOfWork uow)
+    {
+        _uow = uow;
+    }
+
     public async Task TrackAsync(string eventType, Guid? userId, string? payloadJson = null)
     {
         var e = new AnalyticsEvent
@@ -16,15 +23,15 @@ public class AnalyticsService(IUnitOfWork uow) : IAnalyticsService
             Timestamp = DateTimeOffset.UtcNow,
             PayloadJson = payloadJson
         };
-        await uow.Analytics.AddEventAsync(e);
-        await uow.SaveChangesAsync();
+        await _uow.Analytics.AddEventAsync(e);
+        await _uow.SaveChangesAsync();
     }
 
 
     public async Task<IEnumerable<AnalyticsEvent>> QueryAsync(DateTimeOffset from, DateTimeOffset to,
         string? eventType = null)
     {
-        return await uow.Analytics.ListAsync(a =>
+        return await _uow.Analytics.ListAsync(a =>
             a.Timestamp >= from && a.Timestamp <= to && (eventType == null || a.EventType == eventType));
     }
 }

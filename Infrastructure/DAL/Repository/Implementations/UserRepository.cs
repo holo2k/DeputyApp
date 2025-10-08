@@ -4,16 +4,23 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.DAL.Repository.Implementations;
 
-public class UserRepository(AppDbContext db) : GenericRepository<User>(db), IUserRepository
+public class UserRepository : GenericRepository<User>, IUserRepository
 {
+    private AppDbContext _db;
+
+    public UserRepository(AppDbContext db) : base(db)
+    {
+        _db = db;
+    }
+
     public async Task<User?> FindByEmailAsync(string email)
     {
-        return await _set.AsNoTracking().FirstOrDefaultAsync(u => u.Email == email);
+        return await Set.AsNoTracking().FirstOrDefaultAsync(u => u.Email == email);
     }
 
     public async Task<User?> FindByIdAsync(Guid id)
     {
-        return await _set
+        return await Set
             .Include(x => x.UserRoles)
             .ThenInclude(x => x.Role)
             .Include(x => x.Documents)

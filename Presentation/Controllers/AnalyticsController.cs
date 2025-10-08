@@ -7,8 +7,15 @@ namespace Presentation.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class AnalyticsController(IAnalyticsService analytics) : ControllerBase
+public class AnalyticsController : ControllerBase
 {
+    private readonly IAnalyticsService _analyticsService;
+
+    public AnalyticsController(IAnalyticsService analyticsService)
+    {
+        _analyticsService = analyticsService;
+    }
+
     /// <summary>
     ///     Отправка события аналитики (открытый API для клиентов).
     /// </summary>
@@ -22,7 +29,7 @@ public class AnalyticsController(IAnalyticsService analytics) : ControllerBase
     [ProducesResponseType(StatusCodes.Status202Accepted)]
     public async Task<IActionResult> Track([FromBody] TrackRequest req)
     {
-        await analytics.TrackAsync(req.EventType, req.UserId, req.PayloadJson);
+        await _analyticsService.TrackAsync(req.EventType, req.UserId, req.PayloadJson);
         return Accepted();
     }
 
@@ -42,7 +49,7 @@ public class AnalyticsController(IAnalyticsService analytics) : ControllerBase
     public async Task<IActionResult> Query([FromQuery] DateTimeOffset from, [FromQuery] DateTimeOffset to,
         [FromQuery] string? eventType)
     {
-        var list = await analytics.QueryAsync(from, to, eventType);
+        var list = await _analyticsService.QueryAsync(from, to, eventType);
         return Ok(list);
     }
 }

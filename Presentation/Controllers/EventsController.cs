@@ -9,8 +9,17 @@ namespace Presentation.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class EventsController(IEventService events, IAuthService authService) : ControllerBase
+public class EventsController : ControllerBase
 {
+    private readonly IAuthService _authService;
+    private readonly IEventService _events;
+
+    public EventsController(IEventService events, IAuthService authService)
+    {
+        _events = events;
+        _authService = authService;
+    }
+
     /// <summary>
     ///     Получить список предстоящих событий в указанном диапазоне дат.
     /// </summary>
@@ -24,7 +33,7 @@ public class EventsController(IEventService events, IAuthService authService) : 
     [ProducesResponseType(typeof(List<EventResponseDto>), 200)]
     public async Task<IActionResult> GetUpcoming([FromQuery] DateTimeOffset from, [FromQuery] DateTimeOffset to)
     {
-        var list = await events.GetUpcomingAsync(from, to);
+        var list = await _events.GetUpcomingAsync(from, to);
 
         var dtoList = list.Select(ev => new EventResponseDto
         {
@@ -56,10 +65,10 @@ public class EventsController(IEventService events, IAuthService authService) : 
     [ProducesResponseType(typeof(List<EventResponseDto>), 200)]
     public async Task<IActionResult> GetMyUpcoming([FromQuery] DateTimeOffset from, [FromQuery] DateTimeOffset to)
     {
-        var userId = authService.GetCurrentUserId();
+        var userId = _authService.GetCurrentUserId();
         if (userId == Guid.Empty) return Unauthorized();
 
-        var list = await events.GetMyUpcomingAsync(userId, from, to);
+        var list = await _events.GetMyUpcomingAsync(userId, from, to);
 
         var dtoList = list.Select(ev => new EventResponseDto
         {
@@ -95,7 +104,7 @@ public class EventsController(IEventService events, IAuthService authService) : 
     [ProducesResponseType(typeof(EventResponseDto), 200)]
     public async Task<IActionResult> Create([FromBody] CreateEventRequest req)
     {
-        var userId = authService.GetCurrentUserId();
+        var userId = _authService.GetCurrentUserId();
         if (userId == Guid.Empty) return Unauthorized();
 
         var ev = new Event
@@ -111,7 +120,7 @@ public class EventsController(IEventService events, IAuthService authService) : 
             CreatedAt = DateTimeOffset.UtcNow
         };
 
-        var created = await events.CreateAsync(ev);
+        var created = await _events.CreateAsync(ev);
 
         var dto = new EventResponseDto
         {
@@ -140,7 +149,7 @@ public class EventsController(IEventService events, IAuthService authService) : 
     [Authorize]
     public async Task<IActionResult> Delete(Guid id)
     {
-        await events.DeleteAsync(id);
+        await _events.DeleteAsync(id);
         return NoContent();
     }
 }
