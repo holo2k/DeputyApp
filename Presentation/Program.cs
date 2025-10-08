@@ -127,11 +127,14 @@ public static class Program
 
         // Telegram notifier
         var tgToken = config.GetValue<string>("TELEGRAM_BOT_TOKEN") ?? "";
-        var tgChat = config.GetValue<string>("TELEGRAM_CHAT_ID") ?? "";
-        builder.Services.AddHttpClient<INotificationService, TelegramNotificationService>()
-            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler());
-        builder.Services.AddSingleton<INotificationService>(sp =>
-            new TelegramNotificationService(sp.GetRequiredService<HttpClient>(), tgToken, tgChat));
+        builder.Services.AddSingleton<ITelegramBotClient>(sp => new TelegramBotClient(tgToken));
+        builder.Services.AddSingleton(sp => new TelegramNotificationService(
+            sp.GetRequiredService<ITelegramBotClient>(),
+            null
+        ));
+        builder.Services.AddHostedService<TelegramBotWorker>();
+        builder.Services.AddScoped<TelegramMessageHandler>();
+        builder.Services.AddScoped<EventNotificationHandler>();
 
         // Controllers + Swagger
         builder.Services.AddControllers();
@@ -199,7 +202,7 @@ public static class Program
                             Id = "Bearer"
                         }
                     },
-                    Array.Empty<string>()
+                    new string[] { }
                 }
             });
 

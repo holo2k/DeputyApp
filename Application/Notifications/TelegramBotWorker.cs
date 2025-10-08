@@ -1,9 +1,10 @@
-﻿using Application.Notifications;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Telegram.Bot;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types.Enums;
+
+namespace Application.Notifications;
 
 public class TelegramBotWorker : BackgroundService
 {
@@ -30,13 +31,9 @@ public class TelegramBotWorker : BackgroundService
                 var messageHandler = scope.ServiceProvider.GetRequiredService<TelegramMessageHandler>();
 
                 if (update.Message != null && update.Message.Text?.StartsWith("/start") == true)
-                {
                     await messageHandler.HandleStartCommand(update.Message.Chat.Id);
-                }
                 else if (update.CallbackQuery?.Message != null)
-                {
                     await messageHandler.HandleStartCommand(update.CallbackQuery.Message.Chat.Id);
-                }
             },
             (client, ex, token) =>
             {
