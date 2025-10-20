@@ -3,29 +3,24 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace DeputyApp.Migrations
+namespace Infrastructure.Migrations
 {
-    public partial class init : Migration
+    /// <inheritdoc />
+    public partial class Init : Migration
     {
+        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "Catalogs",
+                name: "Chats",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Name = table.Column<string>(type: "text", nullable: false),
-                    ParentCatalogId = table.Column<Guid>(type: "uuid", nullable: true)
+                    ChatId = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Catalogs", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Catalogs_Catalogs_ParentCatalogId",
-                        column: x => x.ParentCatalogId,
-                        principalTable: "Catalogs",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                    table.PrimaryKey("PK_Chats", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -46,6 +41,7 @@ namespace DeputyApp.Migrations
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     Email = table.Column<string>(type: "text", nullable: false),
+                    JobTitle = table.Column<string>(type: "text", nullable: false),
                     PasswordHash = table.Column<string>(type: "text", nullable: false),
                     Salt = table.Column<string>(type: "text", nullable: false),
                     FullName = table.Column<string>(type: "text", nullable: false),
@@ -75,6 +71,31 @@ namespace DeputyApp.Migrations
                         principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.SetNull);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Catalogs",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    ParentCatalogId = table.Column<Guid>(type: "uuid", nullable: true),
+                    OwnerId = table.Column<Guid>(type: "uuid", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Catalogs", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Catalogs_Catalogs_ParentCatalogId",
+                        column: x => x.ParentCatalogId,
+                        principalTable: "Catalogs",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Catalogs_Users_OwnerId",
+                        column: x => x.OwnerId,
+                        principalTable: "Users",
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
@@ -225,9 +246,20 @@ namespace DeputyApp.Migrations
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Catalogs_OwnerId",
+                table: "Catalogs",
+                column: "OwnerId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Catalogs_ParentCatalogId",
                 table: "Catalogs",
                 column: "ParentCatalogId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Chats_ChatId",
+                table: "Chats",
+                column: "ChatId",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Documents_CatalogId",
@@ -287,6 +319,9 @@ namespace DeputyApp.Migrations
         {
             migrationBuilder.DropTable(
                 name: "AnalyticsEvents");
+
+            migrationBuilder.DropTable(
+                name: "Chats");
 
             migrationBuilder.DropTable(
                 name: "Documents");

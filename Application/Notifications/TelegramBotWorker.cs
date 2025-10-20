@@ -1,11 +1,10 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Application.Notifications;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Telegram.Bot;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Requests;
 using Telegram.Bot.Types.Enums;
-
-namespace Application.Notifications;
 
 public class TelegramBotWorker : BackgroundService
 {
@@ -32,27 +31,21 @@ public class TelegramBotWorker : BackgroundService
             Console.WriteLine($"Failed to delete webhook: {ex.Message}");
         }
 
-        var receiverOptions = new ReceiverOptions
-        {
-            AllowedUpdates = new[] { UpdateType.Message, UpdateType.CallbackQuery }
-        };
+
+        var receiverOptions = new ReceiverOptions { AllowedUpdates = new[] { UpdateType.Message } };
 
         _botClient.StartReceiving(
-            async (client, update, token) =>
+            async (bot, update, token) =>
             {
-                using var scope = _scopeFactory.CreateScope();
-                var messageHandler = scope.ServiceProvider.GetRequiredService<TelegramMessageHandler>();
-
-                if (update.Message != null && update.Message.Text?.StartsWith("/start") == true)
+                Console.WriteLine("Получено обновление!");
+                if (update.Message != null && !string.IsNullOrEmpty(update.Message.Text))
+                {
+                    await using var scope = _scopeFactory.CreateAsyncScope();
+                    var messageHandler = scope.ServiceProvider.GetRequiredService<TelegramMessageHandler>();
                     await messageHandler.HandleStartCommand(update.Message.Chat.Id);
-                else if (update.CallbackQuery?.Message != null)
-                    await messageHandler.HandleStartCommand(update.CallbackQuery.Message.Chat.Id);
+                }
             },
-            (client, ex, token) =>
-            {
-                Console.WriteLine($"Polling error: {ex.Message}");
-                return Task.CompletedTask;
-            },
+            async (bot, exception, token) => { Console.WriteLine($"Ошибка polling: {exception.Message}"); },
             receiverOptions,
             stoppingToken
         );

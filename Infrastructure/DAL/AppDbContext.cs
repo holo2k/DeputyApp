@@ -29,6 +29,13 @@ public class AppDbContext : DbContext
         base.OnModelCreating(modelBuilder);
 
 
+        modelBuilder.Entity<Chats>(b =>
+        {
+            b.HasKey(x => x.Id);
+            b.HasIndex(x => x.ChatId).IsUnique();
+        });
+
+
         modelBuilder.Entity<User>(b =>
         {
             b.HasKey(x => x.Id);

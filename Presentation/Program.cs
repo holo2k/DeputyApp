@@ -4,6 +4,7 @@ using System.Text;
 using Application.Notifications;
 using Application.Services;
 using Application.Services.Abstractions;
+using Application.Services.Implementations;
 using Application.Storage;
 using DeputyApp.DAL.UnitOfWork;
 using DotNetEnv;
@@ -42,6 +43,7 @@ public static class Program
 
         var app = builder.Build();
 
+        //await EventNotificationInitializer.RegisterAsync(app.Services);
         await InitializeDatabaseAsync(app);
 
         await ConfigurePipelineAsync(app); // async init webhook/polling
@@ -90,22 +92,20 @@ public static class Program
         var conn = config.GetValue<string>("DB_CONNECTION") ??
                    "Host=localhost;Port=5435;Database=deputy;Username=postgres;Password=postgres";
 
-        // DbContext registration
         builder.Services.InitializeDatabase(conn);
 
-        // Repositories / UoW
         builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
         builder.Services.AddScoped<IUserRepository, UserRepository>();
         builder.Services.AddScoped<ICatalogRepository, CatalogRepository>();
 
-        // Infrastructure and helpers
         builder.Services.AddSingleton<IBlackListService, BlackListService>();
         builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
-        // Application services
         builder.Services.AddDeputyAppServices();
+        builder.Services.AddScoped<IEventService, EventService>();
 
-        // CORS
+        var tgChatId = config.GetValue<string>("TELEGRAM_CHAT_ID") ?? "";
+
         builder.Services.AddCors(options =>
         {
             options.AddPolicy("AllowAll", policy =>
@@ -116,10 +116,8 @@ public static class Program
             });
         });
 
-        // Authentication JWT
         ConfigureJwtAuthentication(builder);
 
-        // MinIO storage options + registration
         var minioOptions = new MinioOptions
         {
             Endpoint = config.GetValue<string>("MINIO_ENDPOINT") ?? "localhost:9000",
@@ -246,34 +244,25 @@ public static class Program
         var provider = scope.ServiceProvider;
         var appDbContext = provider.GetRequiredService<AppDbContext>();
         var hasher = provider.GetRequiredService<IPasswordHasher>();
-
-        // Migrate with retries. DbContextInitializer handles retry/.
         await DbContextInitializer.Migrate(appDbContext, hasher);
     }
 
     private static async Task ConfigurePipelineAsync(WebApplication app)
     {
         app.UseDeveloperExceptionPage();
-
         app.UseSwagger();
         app.UseSwaggerUI(c =>
         {
             c.SwaggerEndpoint("/swagger/v1/swagger.json", "Deputy API v1");
             c.RoutePrefix = string.Empty;
         });
-
         app.UseCors("AllowAll");
-
         app.UseMiddleware<JwtBlacklistMiddleware>();
-
         app.UseHttpsRedirection();
-
         app.UseRouting();
-
         app.UseAuthentication();
         app.UseAuthorization();
 
-        // контроллеры доступны в обоих режимах
         app.MapControllers();
 
         // Telegram webhook / polling init
