@@ -9,9 +9,7 @@ public class EventService : IEventService
 {
     private readonly IUnitOfWork _uow;
     private readonly EventNotificationHandler _notificationHandler;
-
-    public event Func<Event, Task>? EventCreatedOrUpdated;
-
+    
     public EventService(IUnitOfWork uow, EventNotificationHandler notificationHandler)
     {
         _uow = uow;
@@ -25,7 +23,7 @@ public class EventService : IEventService
         await _uow.Events.AddAsync(e);
         await _uow.SaveChangesAsync();
 
-        await _notificationHandler.OnEventCreatedOrUpdated(e);
+        await _notificationHandler.OnEventCreatedOrUpdated(e.Title, "Мероприятие");
 
         return e;
     }
