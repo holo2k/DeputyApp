@@ -55,11 +55,13 @@ services:
       MINIO_ACCESS_KEY: minioadmin
       MINIO_SECRET_KEY: minioadmin
       MINIO_BUCKET: deputy-files
-      TELEGRAM_BOT_TOKEN: "${TELEGRAM_BOT_TOKEN:-}"
-      TELEGRAM_CHAT_ID: "${TELEGRAM_CHAT_ID:-}"
-      JWT_KEY: "${JWT_KEY:-supersecretjwtkey123!}"
+      TELEGRAM_BOT_TOKEN: "8199749012:AAHpLWXWRbOZllvggRBtWC76RGItI9-xWQ4"
+      TELEGRAM_CHAT_ID: ""
+      JWT_KEY: "AAAAB3NzaC1yc2EAAAABJQAAACEA3N1qw1YmAimBUVDFVgHdDulVCiQuBtCaDYQEf5FGMhM"
       Jwt__Issuer: deputyapp
       Jwt__Audience: deputyapp
+      Telegram__UseWebhook: false
+      Telegram__WebhookUrl: https://irit-rtf-ep.ru/api/telegram
     ports:
       - "5000:80"
     networks:

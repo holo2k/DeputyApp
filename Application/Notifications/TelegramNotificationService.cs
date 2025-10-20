@@ -1,12 +1,14 @@
 ﻿using Application.Services.Abstractions;
 using Telegram.Bot;
+using Telegram.Bot.Requests;
+using Telegram.Bot.Types.Enums;
 
 public class TelegramNotificationService : INotificationService
 {
     private readonly ITelegramBotClient _botClient;
-    private readonly string _defaultChatId;
+    private readonly string? _defaultChatId;
 
-    public TelegramNotificationService(ITelegramBotClient botClient, string defaultChatId)
+    public TelegramNotificationService(ITelegramBotClient botClient, string? defaultChatId)
     {
         _botClient = botClient;
         _defaultChatId = defaultChatId;
@@ -17,8 +19,25 @@ public class TelegramNotificationService : INotificationService
         var cid = string.IsNullOrEmpty(chatId) ? _defaultChatId : chatId;
         if (string.IsNullOrEmpty(cid)) return;
 
-        await _botClient.SendMessage(cid, message, parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
+        try
+        {
+            var req = new SendMessageRequest
+            {
+                ParseMode = ParseMode.Html,
+                ChatId = cid,
+                Text = message
+            };
+            // возвращаемый тип Message
+            await _botClient.SendRequest(req);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"SendTelegramAsync failed for {cid}: {ex.Message}");
+        }
     }
 
-    public Task SendPushAsync(Guid userId, string title, string body) => Task.CompletedTask;
+    public Task SendPushAsync(Guid userId, string title, string body)
+    {
+        return Task.CompletedTask;
+    }
 }

@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Hosting;
 using Telegram.Bot;
 using Telegram.Bot.Polling;
+using Telegram.Bot.Requests;
 using Telegram.Bot.Types.Enums;
 
 namespace Application.Notifications;
@@ -17,8 +18,20 @@ public class TelegramBotWorker : BackgroundService
         _scopeFactory = scopeFactory;
     }
 
-    protected override Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        try
+        {
+            // удалить webhook чтобы не было конфликта
+            await _botClient.SendRequest(new DeleteWebhookRequest { DropPendingUpdates = true }, stoppingToken);
+            var info = await _botClient.SendRequest(new GetWebhookInfoRequest(), stoppingToken);
+            Console.WriteLine($"Webhook after delete: {info?.Url ?? "<none>"}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to delete webhook: {ex.Message}");
+        }
+
         var receiverOptions = new ReceiverOptions
         {
             AllowedUpdates = new[] { UpdateType.Message, UpdateType.CallbackQuery }
@@ -43,7 +56,5 @@ public class TelegramBotWorker : BackgroundService
             receiverOptions,
             stoppingToken
         );
-
-        return Task.CompletedTask;
     }
 }
