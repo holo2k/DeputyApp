@@ -1,6 +1,9 @@
-﻿using Application.Services.Abstractions;
+﻿using System.Text.RegularExpressions;
+using Application.Dtos;
+using Application.Services.Abstractions;
 using DeputyApp.DAL.UnitOfWork;
 using Domain.Entities;
+using Domain.Enums;
 
 namespace Application.Services.Implementations;
 
@@ -15,6 +18,11 @@ public class DocumentService : IDocumentService
         _uow = uow;
     }
 
+    public async Task<Document?> GetByFileNameAsync(string fileName)
+    {
+        return await _uow.Documents.GetByFileName(fileName);
+    }
+
     public async Task DeleteAsync(Guid id)
     {
         var d = await _uow.Documents.GetByIdAsync(id);
@@ -25,20 +33,62 @@ public class DocumentService : IDocumentService
     }
 
 
-    public async Task<Document> UploadAsync(string fileName, Stream content, string contentType, Guid? uploadedById,
-        Guid? catalogId)
+    public async Task<Document> UploadAsync(
+        string fileName,
+        Stream content,
+        string contentType,
+        Guid? uploadedById,
+        UploadFileRequest request)
     {
-        var url = await _storage.UploadAsync(fileName, content, contentType);
+        var extension = Path.GetExtension(fileName);
+        var baseName = Path.GetFileNameWithoutExtension(fileName);
+
+        var existed = await GetByFileNameAsync(baseName);
+
+        if (existed is not null)
+        {
+            var match = Regex.Match(existed.FileName, @"^(.*?)(?:\((\d+)\))?$");
+            var pureName = match.Groups[1].Value;
+            var number = int.TryParse(match.Groups[2].Value, out var n) ? n + 1 : 1;
+            baseName = $"{pureName}({number})";
+        }
+
+        var encodedFileName = $"{baseName}-{Guid.NewGuid()}{extension}";
+        var url = await _storage.UploadAsync(encodedFileName, content, contentType);
+
         var doc = new Document
         {
-            Id = Guid.NewGuid(), FileName = fileName, Url = url, ContentType = contentType, Size = content.Length,
-            UploadedAt = DateTimeOffset.UtcNow, UploadedById = uploadedById, CatalogId = catalogId
+            Id = Guid.NewGuid(),
+            FileName = baseName,
+            FileNameEncoded = encodedFileName,
+            StartDate = request.StartDate,
+            EndDate = request.EndDate,
+            Status = request.DocumentStatus,
+            Url = url,
+            ContentType = contentType,
+            Size = content.CanSeek ? content.Length : 0,
+            UploadedAt = DateTimeOffset.UtcNow,
+            UploadedById = uploadedById,
+            CatalogId = request.CatalogId
         };
+
         await _uow.Documents.AddAsync(doc);
         await _uow.SaveChangesAsync();
         return doc;
     }
 
+    public async Task<Document?> UpdateStatusAsync(Guid documentId, DocumentStatus newStatus)
+    {
+        var doc = await _uow.Documents.GetByIdAsync(documentId);
+        if (doc is null)
+            return null;
+
+        doc.Status = newStatus;
+        _uow.Documents.Update(doc);
+        await _uow.SaveChangesAsync();
+
+        return doc;
+    }
 
     public async Task<IEnumerable<Document>> GetByCatalogAsync(Guid catalogId)
     {

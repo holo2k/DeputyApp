@@ -7,11 +7,13 @@ namespace Presentation.Controllers;
 [Route("api/files")]
 public class FilesController : ControllerBase
 {
+    private readonly IDocumentService _documentService;
     private readonly IFileStorage _storage;
 
-    public FilesController(IFileStorage storage)
+    public FilesController(IFileStorage storage, IDocumentService documentService)
     {
         _storage = storage;
+        _documentService = documentService;
     }
 
     /// <summary>
@@ -23,10 +25,12 @@ public class FilesController : ControllerBase
         if (string.IsNullOrWhiteSpace(fileName))
             return BadRequest("fileName не задан");
 
+        var doc = await _documentService.GetByFileNameAsync(fileName);
+
         try
         {
             // Генерируем ссылку на 5 минут
-            var url = await _storage.GetPresignedUrlAsync(fileName, TimeSpan.FromMinutes(5));
+            var url = await _storage.GetPresignedUrlAsync(doc.FileNameEncoded, TimeSpan.FromMinutes(5));
             return Ok(new { url });
         }
         catch (Exception ex)

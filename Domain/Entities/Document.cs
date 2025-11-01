@@ -1,4 +1,5 @@
 ﻿using System.Text.Json.Serialization;
+using Domain.Enums;
 
 namespace Domain.Entities;
 
@@ -6,7 +7,11 @@ public class Document
 {
     public Guid Id { get; set; }
     public string FileName { get; set; } = string.Empty;
-    public string Url { get; set; } = string.Empty; // S3 or CDN link
+    public string FileNameEncoded { get; set; } = string.Empty;
+    public DocumentStatus? Status { get; set; } = null;
+    public DateTimeOffset? StartDate { get; set; } = null;
+    public DateTimeOffset? EndDate { get; set; } = null;
+    public string Url { get; set; } = string.Empty;
     public string ContentType { get; set; } = string.Empty;
     public long Size { get; set; }
     public Guid? UploadedById { get; set; }

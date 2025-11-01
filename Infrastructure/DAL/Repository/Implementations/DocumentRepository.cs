@@ -17,4 +17,9 @@ public class DocumentRepository : GenericRepository<Document>, IDocumentReposito
     {
         return await Set.AsNoTracking().Where(d => d.CatalogId == catalogId).ToListAsync();
     }
+
+    public async Task<Document?> GetByFileName(string fileName)
+    {
+        return (await Set.AsNoTracking().FirstOrDefaultAsync(d => d.FileName == fileName))!;
+    }
 }

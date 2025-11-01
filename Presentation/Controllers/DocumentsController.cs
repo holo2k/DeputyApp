@@ -1,6 +1,8 @@
-﻿using Application.Services.Abstractions;
+﻿using Application.Dtos;
+using Application.Services.Abstractions;
 using DeputyApp.DAL.UnitOfWork;
 using Domain.Entities;
+using Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -28,28 +30,58 @@ public class DocumentsController : ControllerBase
     ///     Загрузить документ на сервер.
     /// </summary>
     /// <param name="file">Файл для загрузки.</param>
-    /// <param name="catalogId">Идентификатор каталога, в который прикрепить документ (необязательный).</param>
+    /// <param name="request">
+    ///     Идентификатор каталога, в который прикрепить документ,
+    ///     статус (ToDo, InProgress, Done),
+    ///     дата начала и дата окончания (необязательные).
+    /// </param>
     /// <returns>
     ///     200 OK с информацией о загруженном документе.
     ///     400 BadRequest если файл не указан или пустой.
     ///     Ограничение размера файла: 50 МБ.
     /// </returns>
     [HttpPost("upload")]
-    [ProducesResponseType(typeof(Document), 200)]
+    [ProducesResponseType(typeof(Document), StatusCodes.Status200OK)]
     [Authorize]
     [RequestSizeLimit(50_000_000)]
-    public async Task<IActionResult> Upload(IFormFile? file, [FromQuery] Guid catalogId)
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> Upload(IFormFile? file, [FromForm] UploadFileRequest request)
+    {
+        var userId = _authService.GetCurrentUserId();
+        if (userId == Guid.Empty)
+            return Unauthorized();
+
+        var userCatalog = await _catalogService.GetByIdAsync(request.CatalogId);
+        if (userCatalog?.OwnerId != userId)
+            return Unauthorized("Нет доступа к чужому каталогу");
+
+        if (file == null || file.Length == 0)
+            return BadRequest("Файл обязателен");
+
+        await using var s = file.OpenReadStream();
+        var uploaded = await _docs.UploadAsync(file.FileName, s, file.ContentType, userId, request);
+
+        return Ok(uploaded);
+    }
+
+
+    /// <summary>
+    ///     Обновить статус документа
+    /// </summary>
+    [HttpPost("update")]
+    [ProducesResponseType(typeof(Document), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [Authorize]
+    public async Task<IActionResult> UpdateStatus([FromQuery] Guid documentId, [FromQuery] DocumentStatus newStatus)
     {
         var userId = _authService.GetCurrentUserId();
         if (userId == Guid.Empty) return Unauthorized();
 
-        var userCatalog = await _catalogService.GetByIdAsync(catalogId);
-        if (userCatalog?.OwnerId != userId) return Unauthorized("Нет доступа к чужому каталогу");
+        var userDoc = await _unitOfWork.Documents.GetByIdAsync(documentId);
+        if (userDoc?.UploadedById != userId) return Unauthorized("Нет доступа к чужому документу");
 
-        if (file == null || file.Length == 0) return BadRequest("Файл обязателен");
-        await using var s = file.OpenReadStream();
-        var uploaded = await _docs.UploadAsync(file.FileName, s, file.ContentType, null, catalogId);
-        return Ok(uploaded);
+        var doc = _docs.UpdateStatusAsync(documentId, newStatus);
+        return Ok(doc);
     }
 
     /// <summary>

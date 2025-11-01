@@ -13,7 +13,7 @@ public class MinioFileStorage
     public MinioFileStorage(MinioOptions options)
     {
         _bucket = options.Bucket;
-        options.Endpoint = "localhost:9000";
+        options.Endpoint = "minio:9000";
         _client = new MinioClient()
             .WithEndpoint(options.Endpoint)
             .WithCredentials(options.AccessKey, options.SecretKey)
