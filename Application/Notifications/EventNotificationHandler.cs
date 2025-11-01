@@ -15,7 +15,7 @@ public class EventNotificationHandler
         _uow = uow;
     }
 
-    public async Task OnEventCreatedOrUpdated(Event e)
+    public async Task OnEventCreatedOrUpdated(string title, string type)
     {
         var chats = await _uow.Chats.ListAsync();
 
@@ -23,7 +23,7 @@ public class EventNotificationHandler
         {
             try
             {
-                await _telegram.SendTelegramAsync(chat.ChatId, $"Мероприятие {e.Title} создано!");
+                await _telegram.SendTelegramAsync(chat.ChatId, $"{type} {title} создано!");
             }
             catch (Exception ex)
             {

@@ -1,4 +1,5 @@
-﻿using Application.Services.Abstractions;
+﻿using Application.Notifications;
+using Application.Services.Abstractions;
 using DeputyApp.DAL.UnitOfWork;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -8,10 +9,13 @@ namespace Application.Services.Implementations;
 public class PostService : IPostService
 {
     private readonly IUnitOfWork _uow;
-
-    public PostService(IUnitOfWork uow)
+    private readonly EventNotificationHandler _notificationHandler;
+    
+    public PostService(IUnitOfWork uow, EventNotificationHandler notificationHandler)
     {
         _uow = uow;
+        _notificationHandler = notificationHandler;
+
     }
 
     public async Task<Post?> GetByIdAsync(Guid id)
@@ -33,6 +37,9 @@ public class PostService : IPostService
         post.PublishedAt = null;
         await _uow.Posts.AddAsync(post);
         await _uow.SaveChangesAsync();
+        
+        await _notificationHandler.OnEventCreatedOrUpdated(post.Title, "Пост");
+
         return post;
     }
 
