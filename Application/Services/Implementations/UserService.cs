@@ -1,5 +1,7 @@
-﻿using Application.Services.Abstractions;
+﻿using Application.Dtos;
+using Application.Services.Abstractions;
 using DeputyApp.DAL.UnitOfWork;
+using Domain.Constants;
 using Domain.Entities;
 
 namespace Application.Services.Implementations;
@@ -39,6 +41,35 @@ public class UserService : IUserService
             user.UserRoles.Add(new UserRole { RoleId = role.Id, UserId = user.Id });
         _uow.Users.Update(user);
         await _uow.SaveChangesAsync();
+    }
+
+    public async Task<User?> UpdateUser(UpdateUserRequest request)
+    {
+        var user = await _uow.Users.GetByIdAsync(request.Id);
+
+        if (request.DeputyId is not null)
+        {
+            var deputy = await _uow.Users.GetByIdAsync((Guid)request.DeputyId);
+
+            if (deputy == null ||
+                deputy.UserRoles.Any(r => r.Role.Name != UserRoles.Deputy) ||
+                user.UserRoles.Any(r => r.Role.Name != UserRoles.Helper))
+                throw new KeyNotFoundException("Не найден депутат либо попытка привязать депутата к депутату");
+        }
+
+        if (request.DeputyId == user.Id)
+            throw new ArgumentException("Нельзя связать пользователя с самим собой");
+
+        user.Email = request.Email;
+        user.JobTitle = request.JobTitle;
+        user.FullName = request.FullName;
+        user.UserRoles = request.UserRoles;
+        user.DeputyId = request.DeputyId;
+
+        _uow.Users.Update(user);
+        await _uow.SaveChangesAsync();
+
+        return user;
     }
 
 

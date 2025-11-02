@@ -10,7 +10,8 @@ public class User
     public string FullName { get; set; } = string.Empty;
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
-
+    public Guid? DeputyId { get; set; }
+    public virtual User? Deputy { get; set; }
     public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
     public ICollection<Post> Posts { get; set; } = new List<Post>();
     public ICollection<Document> Documents { get; set; } = new List<Document>();

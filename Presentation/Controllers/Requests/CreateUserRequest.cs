@@ -5,5 +5,6 @@ public record CreateUserRequest(
     string JobTitle,
     string FullName,
     string Password,
+    Guid? DeputyId,
     string[]? Roles
 );

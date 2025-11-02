@@ -7,5 +7,4 @@ public class CreateEventRequest
     public DateTimeOffset StartAt { get; set; }
     public DateTimeOffset EndAt { get; set; }
     public string Location { get; set; } = string.Empty;
-    public bool IsPublic { get; set; } = true;
 }

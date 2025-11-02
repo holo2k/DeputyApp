@@ -1,10 +1,12 @@
 ﻿using Application.Dtos;
 using Application.Services.Abstractions;
 using DeputyApp.DAL.UnitOfWork;
+using Domain.Constants;
 using Domain.Entities;
 using Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Serilog;
 
 namespace Presentation.Controllers;
 
@@ -43,27 +45,52 @@ public class DocumentsController : ControllerBase
     [HttpPost("upload")]
     [ProducesResponseType(typeof(Document), StatusCodes.Status200OK)]
     [Authorize]
-    [RequestSizeLimit(50_000_000)]
+    [RequestSizeLimit(50 * 1024 * 1024)] // 50 MB
     [Consumes("multipart/form-data")]
-    public async Task<IActionResult> Upload(IFormFile? file, [FromForm] UploadFileRequest request)
+    public async Task<IActionResult> Upload([FromForm] IFormFile? file, [FromForm] UploadFileRequest request)
     {
-        var userId = _authService.GetCurrentUserId();
-        if (userId == Guid.Empty)
+        var user = await _authService.GetCurrentUserAsync();
+        if (user == null)
             return Unauthorized();
 
+        var roles = _authService.GetCurrentUserRoles();
+
+        if (request.CatalogId == Guid.Empty)
+            return BadRequest("CatalogId обязателен");
+
         var userCatalog = await _catalogService.GetByIdAsync(request.CatalogId);
-        if (userCatalog?.OwnerId != userId)
-            return Unauthorized("Нет доступа к чужому каталогу");
+        if (userCatalog == null)
+            return NotFound("Каталог не найден");
+
+        var ownerId = userCatalog.OwnerId;
+
+        if (!((ownerId == null &&
+               roles.Contains(UserRoles
+                   .Deputy)) // Пользователь - депутат, загружает в публичные каталоги (для публичных ownerId = null)
+              || ownerId == user.Id // Загружает в свой каталог
+              || (roles.Contains(UserRoles.Helper) &&
+                  user.Deputy!.Id == ownerId))) // Пользователь - помощник, загружает в каталог депутата
+            return Forbid();
 
         if (file == null || file.Length == 0)
             return BadRequest("Файл обязателен");
 
-        await using var s = file.OpenReadStream();
-        var uploaded = await _docs.UploadAsync(file.FileName, s, file.ContentType, userId, request);
+        const long maxBytes = 50L * 1024 * 1024; // 50 MB
+        if (file.Length > maxBytes)
+            return BadRequest($"Максимальный размер файла {maxBytes} байт");
 
-        return Ok(uploaded);
+        try
+        {
+            await using var s = file.OpenReadStream();
+            var uploaded = await _docs.UploadAsync(file.FileName, s, file.ContentType, user.Id, request);
+            return Ok(uploaded);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Upload failed");
+            return StatusCode(StatusCodes.Status500InternalServerError, "Ошибка загрузки файла");
+        }
     }
-
 
     /// <summary>
     ///     Обновить статус документа
@@ -77,33 +104,66 @@ public class DocumentsController : ControllerBase
         var userId = _authService.GetCurrentUserId();
         if (userId == Guid.Empty) return Unauthorized();
 
-        var userDoc = await _unitOfWork.Documents.GetByIdAsync(documentId);
-        if (userDoc?.UploadedById != userId) return Unauthorized("Нет доступа к чужому документу");
+        var user = await _authService.GetCurrentUserAsync();
+        var roles = _authService.GetCurrentUserRoles();
 
-        var doc = _docs.UpdateStatusAsync(documentId, newStatus);
-        return Ok(doc);
+        var doc = await _unitOfWork.Documents.GetByIdAsync(documentId);
+        if (doc == null) return NotFound("Документ не найден");
+
+        // Помощник: может менять только свои документы и документы депутата
+        if (roles.Contains(UserRoles.Helper))
+        {
+            var isOwnDoc = doc.UploadedById == userId;
+            var isDeputyDoc = doc.Catalog.OwnerId == user.Deputy.Id;
+
+            if (!isOwnDoc && !isDeputyDoc)
+                return Forbid();
+        }
+
+        // Депутат: может менять только документы, находящиеся в его каталоге или в общем
+        if (roles.Contains(UserRoles.Deputy))
+            if (doc.Catalog.OwnerId != userId && doc.Catalog.OwnerId != null)
+                return Forbid();
+
+        var updated = await _docs.UpdateStatusAsync(documentId, newStatus);
+        return Ok(updated);
     }
 
     /// <summary>
-    ///     Получить список документов, привязанных к конкретному каталогу.
+    ///     Получить список документов по каталогу.
     /// </summary>
-    /// <param name="catalogId">Идентификатор каталога.</param>
-    /// <returns>
-    ///     200 OK с массивом документов, принадлежащих каталогу.
-    /// </returns>
-    [HttpGet("by-catalog/{catalogId}")]
-    [ProducesResponseType(typeof(List<Document>), 200)]
+    [HttpGet("by-catalog/{catalogId:guid}")]
+    [ProducesResponseType(typeof(List<Document>), StatusCodes.Status200OK)]
+    [Authorize]
     public async Task<IActionResult> ByCatalog(Guid catalogId)
     {
-        var userId = _authService.GetCurrentUserId();
-        if (userId == Guid.Empty) return Unauthorized();
+        var user = await _authService.GetCurrentUserAsync();
+        if (user == null)
+            return Unauthorized();
 
-        var userCatalog = await _catalogService.GetByIdAsync(catalogId);
-        if (userCatalog?.OwnerId != userId) return Unauthorized("Нет доступа к чужому каталогу");
+        var roles = _authService.GetCurrentUserRoles();
+        var isHelper = roles.Contains(UserRoles.Helper);
+        var isDeputy = roles.Contains(UserRoles.Deputy);
 
-        var list = await _docs.GetByCatalogAsync(catalogId);
-        return Ok(list);
+        var catalog = await _catalogService.GetByIdAsync(catalogId);
+        if (catalog == null)
+            return NotFound("Каталог не найден");
+
+        var canAccess =
+            // общие каталоги
+            catalog.OwnerId == null ||
+            // владелец каталога всегда имеет доступ
+            catalog.OwnerId == user.Id ||
+            // помощник видит документы в каталоге своего депутата
+            (isHelper && user.Deputy != null && catalog.OwnerId == user.Deputy.Id);
+
+        if (!canAccess)
+            return Forbid();
+
+        var docs = await _docs.GetByCatalogAsync(catalogId);
+        return Ok(docs);
     }
+
 
     /// <summary>
     ///     Удалить документ по его идентификатору.

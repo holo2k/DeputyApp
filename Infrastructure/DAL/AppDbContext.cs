@@ -39,9 +39,17 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<User>(b =>
         {
             b.HasKey(x => x.Id);
+
             b.HasIndex(x => x.Email).IsUnique();
             b.Property(x => x.Email).IsRequired();
             b.Property(x => x.PasswordHash).IsRequired();
+
+            // Связь помощник → депутат
+            b.HasOne(x => x.Deputy)
+                .WithMany()
+                .HasForeignKey("DeputyId")
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
 

@@ -1,6 +1,8 @@
 ﻿using Application.Dtos;
 using Application.Services.Abstractions;
+using Domain.Constants;
 using Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Presentation.Controllers.Requests;
 
@@ -11,10 +13,12 @@ namespace Presentation.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _auth;
+    private readonly IUserService _userService;
 
-    public AuthController(IAuthService auth)
+    public AuthController(IAuthService auth, IUserService userService)
     {
         _auth = auth;
+        _userService = userService;
     }
 
     /// <summary>
@@ -35,24 +39,53 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    ///     Создание нового пользователя.
+    ///     Создание нового пользователя. (Роли - Admin, Deputy, Helper)
     /// </summary>
-    /// <param name="req">Объект запроса с Email, полным именем, паролем и ролями пользователя.</param>
+    /// <param name="req">
+    ///     Объект запроса с Email, полным именем, паролем и ролями пользователя, а также ID привязанного
+    ///     депутата, если пользователь помощник.
+    /// </param>
     /// <returns>
     ///     201 Created с информацией о созданном пользователе.
     ///     Возвращаются роли в виде массива строк.
     /// </returns>
     [HttpPost("create")]
     [ProducesResponseType(typeof(User), 200)]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Create([FromBody] CreateUserRequest req)
     {
-        var currentUser = await _auth.GetCurrentUser();
-        if (currentUser == null || currentUser.Roles.All(x => x != "Admin")) return Unauthorized();
+        if (req.Roles is null) return ValidationProblem("Не заданы роли пользователя");
+        if (!req.Roles.Any(r => r is UserRoles.Helper or UserRoles.Admin or UserRoles.Deputy))
+            return ValidationProblem("Не заданы корректные роли пользователя");
+        if (req.Roles.Contains(UserRoles.Helper) && req.DeputyId is null)
+            return ValidationProblem("Не задано айди депутата помощника");
 
-        var user = await _auth.CreateUserAsync(req.Email, req.FullName, req.JobTitle, req.Password,
-            req.Roles ?? new[] { "" });
+        var user = await _auth.CreateUserAsync(req.Email, req.FullName, req.JobTitle, req.Password, req.DeputyId,
+            req.Roles);
         var dto = new UserDto(user.Id, user.Email, user.FullName, user.JobTitle, user.Posts, user.EventsOrganized,
             user.Documents,
+            user.Deputy,
+            user.UserRoles.Select(r => r.Role.Name).ToArray());
+        return CreatedAtAction(nameof(Get), new { id = user.Id }, dto);
+    }
+
+    /// <summary>
+    ///     Обновление пользователя.
+    /// </summary>
+    /// <param name="req">Объект запроса с Email, полным именем, паролем и ролями пользователя.</param>
+    /// <returns>
+    ///     201 Created с информацией о созданном пользователе.
+    ///     Возвращаются роли в виде массива строк.
+    /// </returns>
+    [HttpPost("update")]
+    [ProducesResponseType(typeof(User), 200)]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> Update([FromBody] UpdateUserRequest req)
+    {
+        var user = await _userService.UpdateUser(req);
+        var dto = new UserDto(user.Id, user.Email, user.FullName, user.JobTitle, user.Posts, user.EventsOrganized,
+            user.Documents,
+            user.Deputy,
             user.UserRoles.Select(r => r.Role.Name).ToArray());
         return CreatedAtAction(nameof(Get), new { id = user.Id }, dto);
     }
@@ -85,7 +118,7 @@ public class AuthController : ControllerBase
     [ProducesResponseType(typeof(UserDto), 200)]
     public async Task<IActionResult> Get()
     {
-        var user = await _auth.GetCurrentUser();
+        var user = await _auth.GetCurrentUserAsync();
         if (user == null) return Unauthorized();
         return Ok(user);
     }

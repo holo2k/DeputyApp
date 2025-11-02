@@ -10,5 +10,6 @@ public record UserDto(
     ICollection<Post> Posts,
     ICollection<Event> Events,
     ICollection<Document> Documents,
+    User? Deputy,
     string[] Roles
 );

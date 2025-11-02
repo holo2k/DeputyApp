@@ -181,7 +181,7 @@ public class AuthServiceTests
 
         _userRepoMock.Setup(r => r.FindByIdAsync(id)).ReturnsAsync(user);
 
-        var dto = await _service.GetCurrentUser();
+        var dto = await _service.GetCurrentUserAsync();
         Assert.That(dto, Is.Not.Null);
         Assert.That(dto!.Email, Is.EqualTo(user.Email));
         Assert.That(dto.Roles, Does.Contain("Admin"));

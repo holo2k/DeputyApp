@@ -1,5 +1,6 @@
 ﻿using Application.Dtos;
 using Application.Services.Abstractions;
+using Domain.Constants;
 using Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -64,7 +65,7 @@ public class PostsController : ControllerBase
     /// <response code="401">Пользователь не авторизован.</response>
     [HttpPost]
     [ProducesResponseType(typeof(PostResponse), 200)]
-    [Authorize]
+    [Authorize(Roles = $"{UserRoles.Deputy}, {UserRoles.Admin}")]
     public async Task<IActionResult> Create([FromBody] CreatePostRequest req)
     {
         var userId = _authService.GetCurrentUserId();
@@ -132,7 +133,7 @@ public class PostsController : ControllerBase
     /// <response code="204">Пост успешно удален.</response>
     /// <response code="401">Пользователь не авторизован.</response>
     [HttpDelete("{id}")]
-    [Authorize]
+    [Authorize(Roles = $"{UserRoles.Deputy}, {UserRoles.Admin}")]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _posts.DeleteAsync(id);

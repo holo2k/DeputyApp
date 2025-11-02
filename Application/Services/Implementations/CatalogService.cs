@@ -74,4 +74,10 @@ public class CatalogService : ICatalogService
         await _db.SaveChangesAsync();
         return catalog;
     }
+
+    public async Task<List<Catalog>> GetPublic()
+    {
+        var catalogs = await _catalogRepository.GetAllAsync();
+        return catalogs.Where(x => x.OwnerId is null).ToList();
+    }
 }

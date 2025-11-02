@@ -7,12 +7,12 @@ public interface IAuthService
 {
     Task<AuthResult?> AuthenticateAsync(string email, string password);
 
-    Task<User> CreateUserAsync(string email, string fullName, string jobTitle, string password,
+    Task<User> CreateUserAsync(string email, string fullName, string jobTitle, string password, Guid? deputyId = null,
         params string[] roleNames);
 
     Guid GetCurrentUserId();
     List<string> GetCurrentUserRoles();
-    Task<UserDto?> GetCurrentUser();
+    Task<UserDto?> GetCurrentUserAsync();
     Task<UserDto?> GetUserById(Guid id);
     string GenerateJwtToken(User user);
 

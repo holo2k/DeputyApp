@@ -1,5 +1,6 @@
 ﻿using Application.Dtos;
 using Application.Services.Abstractions;
+using Domain.Constants;
 using Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -21,21 +22,40 @@ public class CatalogsController : ControllerBase
     }
 
     /// <summary>
-    ///     Создать новый каталог.
+    ///     Создать новый личный каталог.
     /// </summary>
     /// <param name="req">Данные для создания каталога: имя и родительский каталог (необязательный).</param>
     /// <returns>
     ///     201 Created с информацией о созданном каталоге.
     ///     401 Unauthorized если пользователь не авторизован.
     /// </returns>
-    [HttpPost]
+    [HttpPost("create-private")]
     [ProducesResponseType(typeof(CatalogResponse), 201)]
-    public async Task<IActionResult> Create([FromBody] CreateCatalogRequest req)
+    [Authorize(Roles = $"{UserRoles.Deputy}, {UserRoles.Helper}")]
+    public async Task<IActionResult> CreatePrivate([FromBody] CreateCatalogRequest req)
     {
         var userId = _authService.GetCurrentUserId();
         if (userId == Guid.Empty) return Unauthorized();
 
         var catalog = await _catalogService.CreateAsync(req.Name, userId, req.ParentCatalogId);
+        var response = new CatalogResponse(catalog.Id, catalog.Name, catalog.ParentCatalogId);
+        return CreatedAtAction(nameof(GetById), new { id = catalog.Id }, response);
+    }
+
+    /// <summary>
+    ///     Создать новый публичный каталог (только админ).
+    /// </summary>
+    /// <param name="req">Данные для создания каталога: имя и родительский каталог (необязательный).</param>
+    /// <returns>
+    ///     201 Created с информацией о созданном каталоге.
+    ///     401 Unauthorized если пользователь не авторизован.
+    /// </returns>
+    [HttpPost("create-public")]
+    [ProducesResponseType(typeof(CatalogResponse), 201)]
+    [Authorize(Roles = UserRoles.Admin)]
+    public async Task<IActionResult> CreatePublic([FromBody] CreateCatalogRequest req)
+    {
+        var catalog = await _catalogService.CreateAsync(req.Name, null, req.ParentCatalogId);
         var response = new CatalogResponse(catalog.Id, catalog.Name, catalog.ParentCatalogId);
         return CreatedAtAction(nameof(GetById), new { id = catalog.Id }, response);
     }
@@ -50,6 +70,7 @@ public class CatalogsController : ControllerBase
     /// </returns>
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(CatalogResponse), 200)]
+    [Authorize]
     public async Task<IActionResult> GetById(Guid id)
     {
         var userId = _authService.GetCurrentUserId();
@@ -68,15 +89,66 @@ public class CatalogsController : ControllerBase
     ///     200 OK с массивом каталогов.
     ///     401 Unauthorized если пользователь не авторизован.
     /// </returns>
-    [HttpGet("my")]
-    [ProducesResponseType(typeof(List<CatalogResponse>), 200)]
+    [HttpGet("mine")]
+    [ProducesResponseType(typeof(List<CatalogResponse>), StatusCodes.Status200OK)]
     [Authorize]
     public async Task<IActionResult> GetMine()
     {
         var userId = _authService.GetCurrentUserId();
-        if (userId == Guid.Empty) return Unauthorized();
+        if (userId == Guid.Empty)
+            return Unauthorized();
 
-        var catalogs = await _catalogService.GetByOwnerAsync(userId);
+        return await GetCatalogsForOwnerAsync(userId);
+    }
+
+    /// TODO
+    /// <summary>
+    ///     Получить каталоги депутата (для помощников) (НЕ РАБОТАЕТ).
+    /// </summary>
+    /// <returns>
+    ///     200 OK с массивом каталогов.
+    ///     404 если у помощника нет депутата.
+    /// </returns>
+    [HttpGet("deputy")]
+    [ProducesResponseType(typeof(List<CatalogResponse>), StatusCodes.Status200OK)]
+    [Authorize(Roles = $"{UserRoles.Helper}, {UserRoles.Admin}")]
+    public async Task<IActionResult> GetDeputyCatalogs()
+    {
+        //TODO связь помощника с депутатом
+        var user = await _authService.GetCurrentUserAsync();
+        if (user?.Deputy is null)
+            return NotFound("У помощника нет назначенного депутата");
+
+        return await GetCatalogsForOwnerAsync(user.Deputy.Id);
+    }
+
+    private async Task<IActionResult> GetCatalogsForOwnerAsync(Guid ownerId)
+    {
+        var catalogs = await _catalogService.GetByOwnerAsync(ownerId);
+
+        var response = catalogs.Select(c => new CatalogResponse(
+            c.Id,
+            c.Name,
+            c.ParentCatalogId
+        )).ToList();
+
+        return Ok(response);
+    }
+
+
+    /// <summary>
+    ///     Получить все публичные каталоги.
+    /// </summary>
+    /// <returns>
+    ///     200 OK с массивом каталогов.
+    ///     401 Unauthorized если пользователь не авторизован.
+    /// </returns>
+    [HttpGet("public")]
+    [ProducesResponseType(typeof(List<CatalogResponse>), 200)]
+    [Authorize]
+    public async Task<IActionResult> GetPublic()
+    {
+        var catalogs = await _catalogService.GetPublic();
 
         var resp = catalogs.Select(c => new CatalogResponse(
             c.Id,
@@ -88,7 +160,7 @@ public class CatalogsController : ControllerBase
     }
 
     /// <summary>
-    ///     Обновить данные каталога.
+    ///     Обновить данные своего каталога.
     /// </summary>
     /// <param name="id">Идентификатор каталога.</param>
     /// <param name="req">Новые данные каталога: имя и родительский каталог.</param>
@@ -98,6 +170,7 @@ public class CatalogsController : ControllerBase
     /// </returns>
     [HttpPut("{id}")]
     [ProducesResponseType(typeof(Catalog), 200)]
+    [Authorize]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateCatalogRequest req)
     {
         var userId = _authService.GetCurrentUserId();
@@ -113,7 +186,7 @@ public class CatalogsController : ControllerBase
     }
 
     /// <summary>
-    ///     Удалить каталог.
+    ///     Удалить свой каталог.
     /// </summary>
     /// <param name="id">Идентификатор каталога.</param>
     /// <returns>
@@ -121,6 +194,7 @@ public class CatalogsController : ControllerBase
     ///     404 NotFound если каталог не найден или содержит дочерние каталоги.
     /// </returns>
     [HttpDelete("{id}")]
+    [Authorize]
     public async Task<IActionResult> Delete(Guid id)
     {
         var userId = _authService.GetCurrentUserId();

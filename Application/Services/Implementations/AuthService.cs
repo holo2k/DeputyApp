@@ -47,6 +47,7 @@ public class AuthService : IAuthService
 
 
     public async Task<User> CreateUserAsync(string email, string fullName, string jobTitle, string password,
+        Guid? deputyId,
         params string[] roleNames)
     {
         if (await _uow.Users.ExistsAsync(u => u.Email == email)) throw new InvalidOperationException("User exists");
@@ -59,6 +60,7 @@ public class AuthService : IAuthService
             JobTitle = jobTitle,
             PasswordHash = _hasher.HashPassword(password, salt),
             Salt = salt,
+            DeputyId = deputyId,
             CreatedAt = DateTimeOffset.UtcNow
         };
         await _uow.Users.AddAsync(user);
@@ -81,7 +83,7 @@ public class AuthService : IAuthService
         return user;
     }
 
-    public async Task<UserDto?> GetCurrentUser()
+    public async Task<UserDto?> GetCurrentUserAsync()
     {
         var id = GetCurrentUserId();
 
@@ -90,6 +92,7 @@ public class AuthService : IAuthService
             var user = await _userRepository.FindByIdAsync(id);
             return new UserDto(id, user.Email, user.FullName, user.JobTitle, user.Posts, user.EventsOrganized,
                 user.Documents,
+                user.Deputy,
                 user.UserRoles.Select(r => r.Role.Name).ToArray());
         }
 
@@ -122,6 +125,7 @@ public class AuthService : IAuthService
             var user = await _userRepository.FindByIdAsync(id);
             return new UserDto(id, user.Email, user.FullName, user.JobTitle, user.Posts, user.EventsOrganized,
                 user.Documents,
+                user.Deputy,
                 user.UserRoles.Select(r => r.Role.Name).ToArray());
         }
 

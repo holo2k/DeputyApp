@@ -1,5 +1,6 @@
 ﻿using Application.Dtos;
 using Application.Services.Abstractions;
+using Domain.Constants;
 using Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -68,6 +69,12 @@ public class EventsController : ControllerBase
         var userId = _authService.GetCurrentUserId();
         if (userId == Guid.Empty) return Unauthorized();
 
+        var user = await _authService.GetCurrentUserAsync();
+        var roles = _authService.GetCurrentUserRoles();
+
+        if (roles.Contains(UserRoles.Helper)) // Если помощник - получает события своего депутата
+            userId = user.Deputy.Id;
+
         var list = await _events.GetMyUpcomingAsync(userId, from, to);
 
         var dtoList = list.Select(ev => new EventResponseDto
@@ -87,26 +94,54 @@ public class EventsController : ControllerBase
         return Ok(dtoList);
     }
 
+    //TODO
     /// <summary>
-    ///     Создать новое событие (только для авторизованных пользователей).
+    ///     Создать приватное событие (только для авторизованных пользователей).
     /// </summary>
-    /// <remarks>
-    ///     Тело запроса содержит минимальный набор данных для создания события: название, описание, даты начала и окончания,
-    ///     локацию и публичность.
-    ///     Возвращается DTO созданного события с его идентификатором и датой создания.
-    /// </remarks>
     /// <param name="req">Данные события для создания (<see cref="CreateEventRequest" />).</param>
     /// <returns>Созданное событие в формате <see cref="EventResponseDto" />.</returns>
     /// <response code="201">Событие успешно создано.</response>
     /// <response code="401">Пользователь не авторизован.</response>
-    [HttpPost]
+    [HttpPost("create-private")]
     [Authorize]
-    [ProducesResponseType(typeof(EventResponseDto), 200)]
-    public async Task<IActionResult> Create([FromBody] CreateEventRequest req)
+    [ProducesResponseType(typeof(EventResponseDto), StatusCodes.Status201Created)]
+    public async Task<IActionResult> CreatePrivate([FromBody] CreateEventRequest req)
     {
         var userId = _authService.GetCurrentUserId();
-        if (userId == Guid.Empty) return Unauthorized();
+        if (userId == Guid.Empty)
+            return Unauthorized();
+        var user = await _authService.GetCurrentUserAsync();
+        var roles = _authService.GetCurrentUserRoles();
 
+        if (roles.Contains(UserRoles.Helper)) // Если помощник - создает событие для своего депутата
+            userId = user.Deputy.Id;
+
+        var created = await CreateEventInternalAsync(req, userId, false);
+        return CreatedAtAction(nameof(GetUpcoming), new { id = created.Id }, created);
+    }
+
+    /// <summary>
+    ///     Создать публичное событие (только для администратора).
+    /// </summary>
+    /// <param name="req">Данные события для создания (<see cref="CreateEventRequest" />).</param>
+    /// <returns>Созданное событие в формате <see cref="EventResponseDto" />.</returns>
+    /// <response code="201">Событие успешно создано.</response>
+    /// <response code="401">Пользователь не авторизован.</response>
+    [HttpPost("create-public")]
+    [Authorize(Roles = UserRoles.Admin)]
+    [ProducesResponseType(typeof(EventResponseDto), StatusCodes.Status201Created)]
+    public async Task<IActionResult> CreatePublic([FromBody] CreateEventRequest req)
+    {
+        var userId = _authService.GetCurrentUserId();
+        if (userId == Guid.Empty)
+            return Unauthorized();
+
+        var created = await CreateEventInternalAsync(req, userId, true);
+        return CreatedAtAction(nameof(GetUpcoming), new { id = created.Id }, created);
+    }
+
+    private async Task<EventResponseDto> CreateEventInternalAsync(CreateEventRequest req, Guid userId, bool isPublic)
+    {
         var ev = new Event
         {
             Id = Guid.NewGuid(),
@@ -115,14 +150,14 @@ public class EventsController : ControllerBase
             StartAt = req.StartAt,
             EndAt = req.EndAt,
             Location = req.Location,
-            IsPublic = req.IsPublic,
+            IsPublic = isPublic,
             OrganizerId = userId,
             CreatedAt = DateTimeOffset.UtcNow
         };
 
         var created = await _events.CreateAsync(ev);
 
-        var dto = new EventResponseDto
+        return new EventResponseDto
         {
             Id = created.Id,
             Title = created.Title,
@@ -132,12 +167,11 @@ public class EventsController : ControllerBase
             Location = created.Location,
             IsPublic = created.IsPublic,
             OrganizerId = created.OrganizerId ?? Guid.Empty,
-            OrganizerFullName = created.Organizer?.FullName ?? "",
+            OrganizerFullName = created.Organizer?.FullName ?? string.Empty,
             CreatedAt = created.CreatedAt
         };
-
-        return CreatedAtAction(nameof(GetUpcoming), new { id = created.Id }, dto);
     }
+
 
     /// <summary>
     ///     Удалить событие (только для авторизованных пользователей).
