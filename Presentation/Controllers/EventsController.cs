@@ -116,7 +116,7 @@ public class EventsController : ControllerBase
         if (roles.Contains(UserRoles.Helper)) // Если помощник - создает событие для своего депутата
             userId = user.Deputy.Id;
 
-        var created = await CreateEventInternalAsync(req, userId, false);
+        var created = await CreateEventInternalAsync(req, userId, isPublic: false);
         return CreatedAtAction(nameof(GetUpcoming), new { id = created.Id }, created);
     }
 
@@ -136,7 +136,7 @@ public class EventsController : ControllerBase
         if (userId == Guid.Empty)
             return Unauthorized();
 
-        var created = await CreateEventInternalAsync(req, userId, true);
+        var created = await CreateEventInternalAsync(req, userId, isPublic: true);
         return CreatedAtAction(nameof(GetUpcoming), new { id = created.Id }, created);
     }
 

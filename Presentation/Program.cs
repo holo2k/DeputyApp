@@ -1,6 +1,3 @@
-using System.Reflection;
-using System.Security.Claims;
-using System.Text;
 using Application.Notifications;
 using Application.Services;
 using Application.Services.Abstractions;
@@ -8,6 +5,8 @@ using Application.Services.Implementations;
 using Application.Storage;
 using DeputyApp.DAL.UnitOfWork;
 using DotNetEnv;
+using Hangfire;
+using Hangfire.PostgreSql;
 using Infrastructure.DAL;
 using Infrastructure.DAL.Repository.Abstractions;
 using Infrastructure.DAL.Repository.Implementations;
@@ -15,13 +14,19 @@ using Infrastructure.Initializers;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Presentation.Hub;
 using Serilog;
 using Serilog.Events;
 using Shared.Encrypt;
 using Shared.Middleware;
+using System.Reflection;
+using System.Security.Claims;
+using System.Text;
 using Telegram.Bot;
 using Telegram.Bot.Requests;
 using Telegram.Bot.Types.Enums;
+
+
 namespace Presentation;
 
 public static class Program
@@ -42,10 +47,10 @@ public static class Program
 
         var app = builder.Build();
 
-        //await EventNotificationInitializer.RegisterAsync(app.Services);
         await InitializeDatabaseAsync(app);
 
         await ConfigurePipelineAsync(app); // async init webhook/polling
+
         try
         {
             Log.Information("Starting web host");
@@ -91,11 +96,24 @@ public static class Program
         var conn = config.GetValue<string>("DB_CONNECTION") ??
                    "Host=localhost;Port=5435;Database=deputy;Username=postgres;Password=postgres";
 
+        builder.Services.AddHangfire(config => config
+            .UseSimpleAssemblyNameTypeSerializer()
+            .UseRecommendedSerializerSettings()
+            .UsePostgreSqlStorage(options => 
+                    { 
+                        options.UseNpgsqlConnection(conn); 
+                    }));
+
+        builder.Services.AddSignalR();
+
+        builder.Services.AddHangfireServer();
+
         builder.Services.InitializeDatabase(conn);
 
         builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
         builder.Services.AddScoped<IUserRepository, UserRepository>();
         builder.Services.AddScoped<ICatalogRepository, CatalogRepository>();
+        builder.Services.AddScoped<IPhoneNotificationService, PhoneNotificationService>();
 
         builder.Services.AddSingleton<IBlackListService, BlackListService>();
         builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
@@ -236,7 +254,7 @@ public static class Program
 
         // core handlers
         builder.Services.AddScoped<TelegramMessageHandler>();
-        builder.Services.AddScoped<EventNotificationHandler>();
+        builder.Services.AddScoped<TgEventNotificationHandler>();
 
         // notification service (можно передать default chat id из env)
         var defaultChatId = builder.Configuration.GetValue<string>("TELEGRAM_CHAT_ID");
@@ -277,7 +295,8 @@ public static class Program
         app.UseRouting();
         app.UseAuthentication();
         app.UseAuthorization();
-
+        app.UseHangfireDashboard("/hangfire");
+        app.MapHub<NotificationHub>("/hubs/notifications");
         app.MapControllers();
 
         // Telegram webhook / polling init

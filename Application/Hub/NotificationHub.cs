@@ -1,15 +1,24 @@
 ﻿namespace Presentation.Hub;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 
+[Authorize]
 public class NotificationHub : Hub
 {
-    public async Task SendToAll(string message)
+    // При подключении SignalR автоматически знает пользователя по JWT
+    public override async Task OnConnectedAsync()
     {
-        await Clients.All.SendAsync("SendNotification", message);
+        var userId = Context.UserIdentifier;
+        await Groups.AddToGroupAsync(Context.ConnectionId, $"user:{userId}");
+        await Groups.AddToGroupAsync(Context.ConnectionId, "common"); // группа общих уведомлений
+        await base.OnConnectedAsync();
     }
-    
-    public async Task SendNotificationToUsers(string message, params string[] userIds)
+
+    public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        await Clients.Users(userIds).SendAsync("ReceiveNotification", message);
+        var userId = Context.UserIdentifier;
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"user:{userId}");
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, "common");
+        await base.OnDisconnectedAsync(exception);
     }
 }

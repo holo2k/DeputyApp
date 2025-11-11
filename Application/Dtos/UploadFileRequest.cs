@@ -1,4 +1,6 @@
 ﻿using Domain.Enums;
+using Microsoft.AspNetCore.Http;
+using System.ComponentModel.DataAnnotations;
 
 namespace Application.Dtos;
 
@@ -7,9 +9,13 @@ namespace Application.Dtos;
 /// </summary>
 public class UploadFileRequest
 {
+    [Required]
+    public IFormFile File { get; set; } = null!;
     /// <summary>
     ///     Идентификатор каталога, в который загружается файл.
     /// </summary>
+
+    [Required]
     public Guid CatalogId { get; set; }
 
     /// <summary>
