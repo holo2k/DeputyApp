@@ -15,7 +15,11 @@ public class UserRepository : GenericRepository<User>, IUserRepository
 
     public async Task<User?> FindByEmailAsync(string email)
     {
-        return await Set.AsNoTracking().FirstOrDefaultAsync(u => u.Email == email);
+        return await Set
+            .Include(x => x.UserRoles)
+            .ThenInclude(x => x.Role)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Email == email);
     }
 
     public async Task<User?> FindByIdAsync(Guid id)

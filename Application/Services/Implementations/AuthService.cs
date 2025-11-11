@@ -36,7 +36,7 @@ public class AuthService : IAuthService
 
     public async Task<AuthResult?> AuthenticateAsync(string email, string password)
     {
-        var user = await _uow.Users.FindSingleAsync(u => u.Email == email);
+        var user = await _userRepository.FindByEmailAsync(email);
         if (user == null) return null;
         if (!_hasher.Verify(user.PasswordHash, user.Salt, password)) return null;
 

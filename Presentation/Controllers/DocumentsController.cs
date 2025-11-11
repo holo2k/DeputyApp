@@ -47,8 +47,9 @@ public class DocumentsController : ControllerBase
     [Authorize]
     [RequestSizeLimit(50 * 1024 * 1024)] // 50 MB
     [Consumes("multipart/form-data")]
-    public async Task<IActionResult> Upload([FromForm] IFormFile? file, [FromForm] UploadFileRequest request)
+    public async Task<IActionResult> Upload([FromForm] UploadFileRequest request)
     {
+        
         var user = await _authService.GetCurrentUserAsync();
         if (user == null)
             return Unauthorized();
@@ -63,6 +64,7 @@ public class DocumentsController : ControllerBase
             return NotFound("Каталог не найден");
 
         var ownerId = userCatalog.OwnerId;
+        var file = request.File;
 
         if (!((ownerId == null &&
                roles.Contains(UserRoles

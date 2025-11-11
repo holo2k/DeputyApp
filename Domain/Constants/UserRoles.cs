@@ -2,7 +2,7 @@
 
 public static class UserRoles
 {
-    public const string Admin = "ADMIN";
-    public const string Deputy = "DEPUTY";
-    public const string Helper = "HELPER";
+    public const string Admin = "Admin";
+    public const string Deputy = "Deputy";
+    public const string Helper = "Helper";
 }

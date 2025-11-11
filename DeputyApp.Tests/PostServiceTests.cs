@@ -26,7 +26,6 @@ public class PostServiceTests
     private PostService _service = null!;
     private Mock<TgEventNotificationHandler> _tgHandler = null!;
 
-
     [Test]
     public async Task GetByIdAsync_WhenExists_ReturnsPost()
     {
