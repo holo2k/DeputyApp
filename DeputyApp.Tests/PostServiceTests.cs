@@ -1,9 +1,10 @@
-﻿using System.Linq.Expressions;
+﻿using Application.Notifications;
 using Application.Services.Implementations;
 using DeputyApp.DAL.UnitOfWork;
 using Domain.Entities;
 using Infrastructure.DAL.Repository.Abstractions;
 using Moq;
+using System.Linq.Expressions;
 
 namespace DeputyApp.Tests;
 
@@ -15,15 +16,16 @@ public class PostServiceTests
     {
         _uowMock = new Mock<IUnitOfWork>();
         _postRepoMock = new Mock<IPostRepository>();
-
+        _tgHandler = new Mock<TgEventNotificationHandler>();
         _uowMock.SetupGet(x => x.Posts).Returns(_postRepoMock.Object);
-
-        _service = new PostService(_uowMock.Object);
+        _service = new PostService(_uowMock.Object, _tgHandler.Object);
     }
 
     private Mock<IUnitOfWork> _uowMock = null!;
     private Mock<IPostRepository> _postRepoMock = null!;
     private PostService _service = null!;
+    private Mock<TgEventNotificationHandler> _tgHandler = null!;
+
 
     [Test]
     public async Task GetByIdAsync_WhenExists_ReturnsPost()

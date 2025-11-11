@@ -1,4 +1,5 @@
-﻿using Application.Services.Implementations;
+﻿using Application.Notifications;
+using Application.Services.Implementations;
 using DeputyApp.DAL.UnitOfWork;
 using Domain.Entities;
 using Infrastructure.DAL.Repository.Abstractions;
@@ -14,14 +15,16 @@ public class EventServiceTests
     {
         _uowMock = new Mock<IUnitOfWork>();
         _eventRepoMock = new Mock<IEventRepository>();
+        _tgHandler = new Mock<TgEventNotificationHandler>();
 
         _uowMock.SetupGet(x => x.Events).Returns(_eventRepoMock.Object);
 
-        _service = new EventService(_uowMock.Object);
+        _service = new EventService(_uowMock.Object, _tgHandler.Object);
     }
 
     private Mock<IUnitOfWork> _uowMock = null!;
     private Mock<IEventRepository> _eventRepoMock = null!;
+    private Mock<TgEventNotificationHandler> _tgHandler = null!;
     private EventService _service = null!;
 
     [Test]

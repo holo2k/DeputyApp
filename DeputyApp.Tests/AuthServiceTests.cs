@@ -117,7 +117,7 @@ public class AuthServiceTests
 
         _hasherMock.Setup(h => h.HashPassword(It.IsAny<string>(), It.IsAny<string>())).Returns("hashed");
 
-        var created = await _service.CreateUserAsync(email, "Full", "Job", "pwd", "Deputy");
+        var created = await _service.CreateUserAsync(email, "Full", "Job", "pwd", Guid.CreateVersion7(), "Deputy");
 
         Assert.That(created, Is.Not.Null);
         _uowMock.Verify(u => u.Users.AddAsync(It.Is<User>(u => u.Email == email)), Times.Once);
