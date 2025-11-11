@@ -4,12 +4,12 @@ using DeputyApp.DAL.UnitOfWork;
 
 namespace Application.Notifications;
 
-public class EventNotificationHandler
+public class TgEventNotificationHandler
 {
     private readonly TelegramNotificationService _telegram;
     private readonly IUnitOfWork _uow;
 
-    public EventNotificationHandler(TelegramNotificationService telegram, IUnitOfWork uow)
+    public TgEventNotificationHandler(TelegramNotificationService telegram, IUnitOfWork uow)
     {
         _telegram = telegram;
         _uow = uow;

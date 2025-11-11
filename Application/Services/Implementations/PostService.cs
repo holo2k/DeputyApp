@@ -9,13 +9,12 @@ namespace Application.Services.Implementations;
 public class PostService : IPostService
 {
     private readonly IUnitOfWork _uow;
-    private readonly EventNotificationHandler _notificationHandler;
+    private readonly TgEventNotificationHandler _tgNotificationHandler;
     
-    public PostService(IUnitOfWork uow, EventNotificationHandler notificationHandler)
+    public PostService(IUnitOfWork uow, TgEventNotificationHandler tgNotificationHandler)
     {
         _uow = uow;
-        _notificationHandler = notificationHandler;
-
+        _tgNotificationHandler = tgNotificationHandler;
     }
 
     public async Task<Post?> GetByIdAsync(Guid id)
@@ -38,7 +37,7 @@ public class PostService : IPostService
         await _uow.Posts.AddAsync(post);
         await _uow.SaveChangesAsync();
         
-        await _notificationHandler.OnEventCreatedOrUpdated(post.Title, "Пост");
+        await _tgNotificationHandler.OnEventCreatedOrUpdated(post.Title, "Пост");
 
         return post;
     }

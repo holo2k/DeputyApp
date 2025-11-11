@@ -8,12 +8,12 @@ namespace Application.Services.Implementations;
 public class EventService : IEventService
 {
     private readonly IUnitOfWork _uow;
-    private readonly EventNotificationHandler _notificationHandler;
+    private readonly TgEventNotificationHandler _tgNotificationHandler;
     
-    public EventService(IUnitOfWork uow, EventNotificationHandler notificationHandler)
+    public EventService(IUnitOfWork uow, TgEventNotificationHandler tgNotificationHandler)
     {
         _uow = uow;
-        _notificationHandler = notificationHandler;
+        _tgNotificationHandler = tgNotificationHandler;
     }
 
     public async Task<Event> CreateAsync(Event e)
@@ -23,7 +23,7 @@ public class EventService : IEventService
         await _uow.Events.AddAsync(e);
         await _uow.SaveChangesAsync();
 
-        await _notificationHandler.OnEventCreatedOrUpdated(e.Title, "Мероприятие");
+        await _tgNotificationHandler.OnEventCreatedOrUpdated(e.Title, "Мероприятие");
 
         return e;
     }
