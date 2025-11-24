@@ -29,6 +29,8 @@ public class UnitOfWork : IUnitOfWork
     public IPostRepository Posts { get; }
     public IEventRepository Events { get; }
     public IChatRepository Chats { get; }
+    
+    public ITaskRepository Tasks { get; }
     public IDocumentRepository Documents { get; }
     public IAnalyticsRepository Analytics { get; }
     public IFeedbackRepository Feedbacks { get; }

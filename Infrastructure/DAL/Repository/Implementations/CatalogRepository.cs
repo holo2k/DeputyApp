@@ -1,6 +1,7 @@
 ﻿using Domain.Entities;
 using Infrastructure.DAL.Repository.Abstractions;
 using Microsoft.EntityFrameworkCore;
+using Task = System.Threading.Tasks.Task;
 
 namespace Infrastructure.DAL.Repository.Implementations;
 

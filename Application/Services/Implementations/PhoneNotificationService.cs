@@ -2,6 +2,7 @@
 using Domain.Entities;
 using Microsoft.AspNetCore.SignalR;
 using Presentation.Hub;
+using Task = System.Threading.Tasks.Task;
 
 namespace Application.Services.Implementations;
 

@@ -10,6 +10,7 @@ using Microsoft.Extensions.Configuration;
 using Moq;
 using Shared.Encrypt;
 using Shared.Middleware;
+using Task = System.Threading.Tasks.Task;
 
 namespace DeputyApp.Tests;
 

@@ -1,5 +1,6 @@
 ﻿using Application.Dtos;
 using Domain.Entities;
+using Task = System.Threading.Tasks.Task;
 
 namespace Application.Services.Abstractions;
 

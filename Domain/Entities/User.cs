@@ -16,4 +16,5 @@ public class User
     public ICollection<Post> Posts { get; set; } = new List<Post>();
     public ICollection<Document> Documents { get; set; } = new List<Document>();
     public ICollection<Event> EventsOrganized { get; set; } = new List<Event>();
+    public ICollection<TaskEntity> Tasks { get; set; } = new List<TaskEntity>();
 }

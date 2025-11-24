@@ -22,6 +22,7 @@ public class AppDbContext : DbContext
     public DbSet<Document> Documents => Set<Document>();
     public DbSet<AnalyticsEvent> AnalyticsEvents => Set<AnalyticsEvent>();
     public DbSet<Feedback> Feedbacks => Set<Feedback>();
+    public DbSet<TaskEntity> Tasks => Set<TaskEntity>();
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

@@ -3,6 +3,7 @@ using Application.Services.Abstractions;
 using DeputyApp.DAL.UnitOfWork;
 using Domain.Constants;
 using Domain.Entities;
+using Task = System.Threading.Tasks.Task;
 
 namespace Application.Services.Implementations;
 

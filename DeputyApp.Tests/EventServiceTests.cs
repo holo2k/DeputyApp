@@ -5,6 +5,7 @@ using DeputyApp.DAL.UnitOfWork;
 using Domain.Entities;
 using Infrastructure.DAL.Repository.Abstractions;
 using Moq;
+using Task = System.Threading.Tasks.Task;
 
 namespace DeputyApp.Tests;
 

@@ -5,6 +5,7 @@ using Domain.Entities;
 using Infrastructure.DAL.Repository.Abstractions;
 using Moq;
 using System.Linq.Expressions;
+using Task = System.Threading.Tasks.Task;
 
 namespace DeputyApp.Tests;
 

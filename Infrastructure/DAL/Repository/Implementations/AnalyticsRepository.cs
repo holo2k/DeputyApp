@@ -1,5 +1,6 @@
 ﻿using Domain.Entities;
 using Infrastructure.DAL.Repository.Abstractions;
+using Task = System.Threading.Tasks.Task;
 
 namespace Infrastructure.DAL.Repository.Implementations;
 

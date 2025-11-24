@@ -3,6 +3,7 @@ using Infrastructure.DAL;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Shared.Encrypt;
+using Task = System.Threading.Tasks.Task;
 
 namespace Infrastructure.Initializers;
 

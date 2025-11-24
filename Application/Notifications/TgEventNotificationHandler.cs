@@ -1,6 +1,7 @@
 ﻿using Domain.Entities;
 using Application.Services.Abstractions;
 using DeputyApp.DAL.UnitOfWork;
+using Task = System.Threading.Tasks.Task;
 
 namespace Application.Notifications;
 
