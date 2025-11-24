@@ -34,18 +34,16 @@ public class TaskService(IAuthService auth, IUnitOfWork uow) : ITaskService
     {
         var currentUser = await auth.GetCurrentUserAsync();
         if (currentUser is null) throw new UnauthorizedAccessException();
-        var task = await taskRepository.GetByIdAsync(id);
+        var task = await taskRepository.GetByIdAsync(id, includes:x=>x.Users);
         if (task is null) throw new UnauthorizedAccessException();
         if (currentUser.Roles.All(x=>x != "Admin") || task.AuthorId != currentUser.Id) 
             throw new Exception($"Permission denied for task with id {task.Id}");        
-        var entity = await taskRepository.GetByIdAsync(id);
-        if (entity is null) throw new Exception($"Task with id {id} was not found");
-        uow.Tasks.Delete(entity);
+        uow.Tasks.Delete(task);
     }
 
     public async Task<TaskResponse> Update(CreateTaskRequest request, Guid taskId)
     {
-        var task = await taskRepository.GetByIdAsync(taskId);
+        var task = await taskRepository.GetByIdAsync(taskId, includes:x=>x.Users);
         if (task is null) throw new Exception($"Task with id {taskId} was not found");
         var currentUserId =  auth.GetCurrentUserId();
         var currentUserRole = auth.GetCurrentUserRoles();
@@ -59,7 +57,7 @@ public class TaskService(IAuthService auth, IUnitOfWork uow) : ITaskService
 
     public async Task<IEnumerable<TaskResponse>> GetAllAsync()
     {
-        var tasks = await taskRepository.ListAsync();
+        var tasks = await taskRepository.ListAsync(includes:x=>x.Users);
         var models = tasks.Select(x => x.ToTaskResponse());
 
         return models;
@@ -69,7 +67,7 @@ public class TaskService(IAuthService auth, IUnitOfWork uow) : ITaskService
     {
         var currentUser = await auth.GetCurrentUserAsync();
         if (currentUser is null) throw new UnauthorizedAccessException();
-        var task = await taskRepository.GetByIdAsync(id);
+        var task = await taskRepository.GetByIdAsync(id, includes:x=>x.Users);
         if (task is null) throw new UnauthorizedAccessException();
         if (currentUser.Roles.All(x=>x != "Admin") || task.AuthorId != currentUser.Id) 
             throw new Exception($"Permission denied for task with id {task.Id}");   
@@ -81,7 +79,7 @@ public class TaskService(IAuthService auth, IUnitOfWork uow) : ITaskService
     {
         var currentUser = await auth.GetCurrentUserAsync();
         if (currentUser is null) throw new UnauthorizedAccessException();
-        var task = await taskRepository.GetByIdAsync(id);
+        var task = await taskRepository.GetByIdAsync(id, includes:x=>x.Users);
         if (task is null) throw new Exception($"Task with id {id} was not found");
         if (currentUser.Roles.All(x=>x != "Admin") || task.AuthorId != currentUser.Id) 
             throw new Exception($"Permission denied for task with id {task.Id}");   
@@ -92,7 +90,7 @@ public class TaskService(IAuthService auth, IUnitOfWork uow) : ITaskService
 
     public async Task<Guid> AddUserAsync(Guid userId, Guid taskId)
     {
-        var task = await taskRepository.GetByIdAsync(taskId);
+        var task = await taskRepository.GetByIdAsync(taskId, includes:x=>x.Users);
         if (task is null) 
             throw new Exception($"Task with id {taskId} was not found");
         
@@ -103,7 +101,7 @@ public class TaskService(IAuthService auth, IUnitOfWork uow) : ITaskService
         if (author.Roles.All(x=>x != "Admin") || task.AuthorId != author.Id) 
             throw new Exception($"Permission denied for item with id {taskId}");
         
-        var user = await userRepository.GetByIdAsync(userId);
+        var user = await userRepository.GetByIdAsync(userId, includes:x=>x.Tasks);
         if (user is null) throw new Exception($"User with id {userId} was not found");
         task.Users.Add(user);
         taskRepository.Update(task);
@@ -116,7 +114,7 @@ public class TaskService(IAuthService auth, IUnitOfWork uow) : ITaskService
     {
         var userId = auth.GetCurrentUserId();
         if (userId == Guid.Empty) throw new Exception($"User with id {userId} was not found");
-        var tasks = await taskRepository.ListAsync(task=>task.AuthorId == userId || task.Users.Any(user=>user.Id == userId));
+        var tasks = await taskRepository.ListAsync(task=>task.AuthorId == userId || task.Users.Any(user=>user.Id == userId), includes:x=>x.Users);
         return tasks.Select(x => x.ToTaskResponse());
     }
 
@@ -126,7 +124,7 @@ public class TaskService(IAuthService auth, IUnitOfWork uow) : ITaskService
         if (currentUserRoles.All(x => x != UserRoles.Admin))
             throw new Exception($"Permission denied for task with id {userId}");
         
-        var tasks = await taskRepository.ListAsync(task=>task.AuthorId == userId || task.Users.Any(user=>user.Id == userId));
+        var tasks = await taskRepository.ListAsync(task=>task.AuthorId == userId || task.Users.Any(user=>user.Id == userId), includes:x=>x.Users);
 
         return tasks.Select(x=>x.ToTaskResponse()).ToList();
     }

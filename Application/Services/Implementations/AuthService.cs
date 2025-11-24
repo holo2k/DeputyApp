@@ -89,9 +89,10 @@ public class AuthService : IAuthService
 
         if (id != Guid.Empty)
         {
-            var user = await _userRepository.FindByIdAsync(id);
+            var user = await _userRepository.GetByIdAsync(id, x=>x.Tasks);
             return new UserDto(id, user.Email, user.FullName, user.JobTitle, user.Posts, user.EventsOrganized,
                 user.Documents,
+                user.Tasks,
                 user.Deputy,
                 user.UserRoles.Select(r => r.Role.Name).ToArray());
         }
@@ -125,6 +126,7 @@ public class AuthService : IAuthService
             var user = await _userRepository.FindByIdAsync(id);
             return new UserDto(id, user.Email, user.FullName, user.JobTitle, user.Posts, user.EventsOrganized,
                 user.Documents,
+                user.Tasks,
                 user.Deputy,
                 user.UserRoles.Select(r => r.Role.Name).ToArray());
         }

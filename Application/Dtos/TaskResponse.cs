@@ -14,5 +14,5 @@ public class TaskResponse
     public int Priority { get; set; }
     public int? StatusId { get; set; }
     public bool IsArchived { get; set; }
-    public IEnumerable<User> Users { get; set; } = new List<User>();
+    public ICollection<User> Users { get; set; } = new List<User>();
 }

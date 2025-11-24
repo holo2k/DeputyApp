@@ -64,6 +64,7 @@ public class AuthController : ControllerBase
             req.Roles);
         var dto = new UserDto(user.Id, user.Email, user.FullName, user.JobTitle, user.Posts, user.EventsOrganized,
             user.Documents,
+            user.Tasks,
             user.Deputy,
             user.UserRoles.Select(r => r.Role.Name).ToArray());
         return CreatedAtAction(nameof(Get), new { id = user.Id }, dto);
@@ -85,6 +86,7 @@ public class AuthController : ControllerBase
         var user = await _userService.UpdateUser(req);
         var dto = new UserDto(user.Id, user.Email, user.FullName, user.JobTitle, user.Posts, user.EventsOrganized,
             user.Documents,
+            user.Tasks,
             user.Deputy,
             user.UserRoles.Select(r => r.Role.Name).ToArray());
         return CreatedAtAction(nameof(Get), new { id = user.Id }, dto);

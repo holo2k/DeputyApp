@@ -19,6 +19,7 @@ public static class TaskMapper
             Priority = task.Priority,
             StatusId = task.StatusId,
             IsArchived = task.IsArchived,
+            Users = task.Users.ToList()
         };
     }
 }
