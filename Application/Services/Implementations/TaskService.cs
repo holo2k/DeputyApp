@@ -1,6 +1,8 @@
 ﻿using Application.Dtos;
+using Application.Mappers;
 using Application.Services.Abstractions;
 using DeputyApp.DAL.UnitOfWork;
+using Domain.Constants;
 using Domain.Entities;
 using Infrastructure.DAL.Repository.Abstractions;
 
@@ -9,6 +11,7 @@ namespace Application.Services.Implementations;
 public class TaskService(HttpClient httpClient, IAuthService auth, IUnitOfWork uow) : ITaskService
 {
     private readonly ITaskRepository taskRepository = uow.Tasks;
+    private readonly IUserRepository userRepository = uow.Users;
     public async Task<Guid> CreateAsync(CreateTaskRequest request)
     {
         var currentUserId = auth.GetCurrentUserId();
@@ -29,252 +32,102 @@ public class TaskService(HttpClient httpClient, IAuthService auth, IUnitOfWork u
 
     public async Task Delete(Guid id)
     {
+        var currentUser = await auth.GetCurrentUserAsync();
+        if (currentUser is null) throw new UnauthorizedAccessException();
+        var task = await taskRepository.GetByIdAsync(id);
+        if (task is null) throw new UnauthorizedAccessException();
+        if (currentUser.Roles.All(x=>x != "Admin") || task.AuthorId != currentUser.Id) 
+            throw new Exception($"Permission denied for task with id {task.Id}");        
         var entity = await taskRepository.GetByIdAsync(id);
         if (entity is null) throw new Exception($"Task with id {id} was not found");
         uow.Tasks.Delete(entity);
     }
 
-    public async Task<IEnumerable<TaskResponse>> GetAllItemsAsync()
+    public async Task<TaskResponse> Update(CreateTaskRequest request, Guid taskId)
+    {
+        var task = await taskRepository.GetByIdAsync(taskId);
+        if (task is null) throw new Exception($"Task with id {taskId} was not found");
+        var currentUserId =  auth.GetCurrentUserId();
+        var currentUserRole = auth.GetCurrentUserRoles();
+        if (currentUserRole.All(x=>x != "Admin") || task.AuthorId != currentUserId) 
+            throw new Exception($"Permission denied for task with id {taskId}");
+        
+        task.UpdateFrom(request);
+        taskRepository.Update(task);
+        return task.ToTaskResponse();
+    }
+
+    public async Task<IEnumerable<TaskResponse>> GetAllAsync()
     {
         var tasks = await taskRepository.ListAsync();
+        var models = tasks.Select(x => x.ToTaskResponse());
+
+        return models;
+    }
+
+    public async Task<TaskResponse> GetByIdAsync(Guid id)
+    {
+        var currentUser = await auth.GetCurrentUserAsync();
+        if (currentUser is null) throw new UnauthorizedAccessException();
+        var task = await taskRepository.GetByIdAsync(id);
+        if (task is null) throw new UnauthorizedAccessException();
+        if (currentUser.Roles.All(x=>x != "Admin") || task.AuthorId != currentUser.Id) 
+            throw new Exception($"Permission denied for task with id {task.Id}");   
+        if (task is null) throw new Exception($"Task with id {id} was not found");
+        return task.ToTaskResponse();
+    }
+    
+    public async Task<Guid> SetArchivedStatus(Guid id, bool isArchived)
+    {
+        var currentUser = await auth.GetCurrentUserAsync();
+        if (currentUser is null) throw new UnauthorizedAccessException();
+        var task = await taskRepository.GetByIdAsync(id);
+        if (task is null) throw new Exception($"Task with id {id} was not found");
+        if (currentUser.Roles.All(x=>x != "Admin") || task.AuthorId != currentUser.Id) 
+            throw new Exception($"Permission denied for task with id {task.Id}");   
+        task.IsArchived = isArchived;
+        taskRepository.Update(task);
+        return id;
+    }
+
+    public async Task<Guid> AddUserAsync(Guid userId, Guid taskId)
+    {
+        var task = await taskRepository.GetByIdAsync(taskId);
+        if (task is null) 
+            throw new Exception($"Task with id {taskId} was not found");
         
-
-        return models;
-    }
-
-
-    public async Task<ItemModel> GetByIdAsync(int? id)
-    {
-        if (id is null) throw new ArgumentNullException(nameof(id));
-        var model = await ItemMapper.ToModel(await itemRepository.GetByIdAsync((int)id), userRepository);
-        return model;
-    }
-
-    public async Task<ICollection<ItemModel>> GetByBoardIdAsync(int boardId)
-    {
-        var items = await itemRepository.GetItemsByBoardIdAsync(boardId);
-        var models = await Task.WhenAll(items.Select(x=>ItemMapper.ToModel(x, userRepository)));
-        return models;
-    }
-
-    public async Task<int> SetItemArchieved(int itemId, CancellationToken token)
-    {
-        var item = await itemRepository.GetByIdAsync(itemId);
-        item.IsArchived = true;
-        await itemRepository.UpdateAsync(item);
-        return await UpdateAsync(await ItemMapper.ToModel(item, userRepository), token,
-            $"Задача {item.Title} перенесена в архив", 
-            "false", "true", "Archived");
-    }
-
-    public async Task<int> SetItemNotArchived(int itemId, CancellationToken token)
-    {
-        var item = await itemRepository.GetByIdAsync(itemId);
-        item.IsArchived = false;
-
-        return await UpdateAsync(await ItemMapper.ToModel(item, userRepository), token,
-            $"Задача {item.Title} перенесена из архива в активное пользование", 
-            "true", "false", "Archived");
-    }
-
-    public async Task<int> UpdateAsync(ItemModel item, CancellationToken token, string message, string oldValue, string newValue, string fieldName,
-        TaskEventType eventType = TaskEventType.Updated)
-    {
-        await validatorManager.ValidateItemModelAsync(item);
-        var entity = ItemMapper.ItemToEntity(item);
-        entity.Id = item.Id;
-        var updatedAt = DateTime.UtcNow;
-        entity.UpdatedAt = updatedAt;
-        await itemRepository.UpdateAsync(entity);
-        await kafkaProducer.ProduceAsync(new TaskEventMessage
-        {
-            EventType = eventType,
-            UserItems = item.UserItems,
-            Message = message,
-        }, token);
-        var model = new SharedLibrary.Models.AnalyticModels.TaskHistoryModel
-        {
-            FieldName = fieldName,
-            OldValue = oldValue,
-            NewValue = newValue,
-            ItemId = item.Id,
-            UserId = (int)auth.GetCurrentUserId()!,
-            ChangedAt = updatedAt
-        };
-        await httpClient.PostAsJsonAsync("create", model, cancellationToken: token);
-        return entity.Id;
-    }
-
-    public async Task<int> AddUserToItemAsync(int newUserId, int itemId, CancellationToken cancellationToken)
-    {
-        var item = await itemRepository.GetByIdAsync(itemId);
-        await validatorManager.ValidateAddUserToItemAsync((int)item.ProjectId!, newUserId, itemId);
-        var itemUserEntity = new UserItemEntity
-        {
-            ItemId = itemId,
-            UserId = newUserId
-        };
-
-        var oldValue = new List<UserItemEntity>(item.UserItems);
-        await itemRepository.AddUserToItemAsync(itemUserEntity);
-        item.UserItems.Add(itemUserEntity);
-        await UpdateAsync(await ItemMapper.ToModel(item, userRepository), cancellationToken, 
-            $"В {item.Title} добавлен пользователь с айди {newUserId}", oldValue.ToString(), item.UserItems.ToString(), 
-            "UserItems", TaskEventType.AddedUser); //пока оставил список юзеров через тустринг, потому решу как правильно передавать старое и новое значение
-        //TODO ПРИДУМАТЬ!!!
-        return itemUserEntity.Id;
-    }
-
-    public async Task<ICollection<ItemModel>> GetArchievedItemsInProject(int projectId)
-    {
-        await validatorManager.ValidateUserInProjectAsync(projectId);
-        var items = await itemRepository.GetItemsByProjectIdAsync(projectId);
-        var models = await Task.WhenAll(items.Where(x=>x.IsArchived).Select(x=>ItemMapper.ToModel(x, userRepository)));
-
-        return models;
-    }
-
-    public async Task<ICollection<ItemModel>> GetArchievedItemsInBoard(int boardId)
-    {
-        var projectId = (await projectRepository.GetByBoardIdAsync(boardId)).Id;
-        await validatorManager.ValidateUserInProjectAsync(projectId);
-        var items = await itemRepository.GetItemsByBoardIdAsync(boardId);
-        var models = await Task.WhenAll(items.Where(x => x.IsArchived).Select(x=> ItemMapper.ToModel(x, userRepository)));
-
-        return models;
-    }
-
-    public async Task<ICollection<ItemModel>> GetBugsItemsInProject(int projectId)
-    {
-        await validatorManager.ValidateUserInProjectAsync(projectId);
-        var items = await itemRepository.GetItemsByProjectIdAsync(projectId);
-        var models = await Task.WhenAll(items.Where(x => x.ItemTypeId == ItemType.BUG).Select(x => ItemMapper.ToModel(x, userRepository)));
-
-        return models;
-    }
-
-    public async Task<ICollection<ItemModel>> GetBugsItemsInBoard(int boardId)
-    {
-        var projectId = (await projectRepository.GetByBoardIdAsync(boardId)).Id;
-        await validatorManager.ValidateUserInProjectAsync(projectId);
-        var items = await itemRepository.GetItemsByBoardIdAsync(boardId);
-        var models = await Task.WhenAll(items.Where(x => x.ItemTypeId == ItemType.BUG).Select(x => ItemMapper.ToModel(x, userRepository)));
-
-        return models;
-    }
-
-    public async Task<ICollection<ItemModel>> GetByProjectIdAsync(int projectId)
-    {
-        await validatorManager.ValidateUserInProjectAsync(projectId);
-        var items = await itemRepository.GetItemsByProjectIdAsync(projectId);
-        var models = await Task.WhenAll(items.Select(x=> ItemMapper.ToModel(x, userRepository)));
-        return models;
-    }
-
-    public async Task<ItemModel> GetByTitle(string title)
-    {
-        return await ItemMapper.ToModel(await itemRepository.GetByNameAsync(title), userRepository);
-    }
-
-
-    public async Task<ICollection<ItemModel>> GetCurrentUserItems()
-    {
-        var userId = auth.GetCurrentUserId();
-        if (userId is null || userId == -1) throw new NotAuthorizedException();
-        var items = await itemRepository.GetCurrentUserItemsAsync((int)userId);
-        var models = await Task.WhenAll(items.Select(x=> ItemMapper.ToModel(x, userRepository)));
-
-        return models;
-    }
-
-    public async Task<ICollection<ItemModel>> GetItemsByUserId(int userId, int projectId)
-    {
-        await validatorManager.ValidateAddUserToItemAsync(projectId, userId);
-        var items = await itemRepository.GetItemsByUserIdAsync(userId, projectId);
-        var models = await Task.WhenAll(items.Select(x=> ItemMapper.ToModel(x, userRepository)));
-
-        return models;
-    }
-
-    public async Task<int> AddCommentToItemAsync(CommentModel commentModel, IFormFile? attachment)
-    {
-        var userId = auth.GetCurrentUserId();
-        if (userId is null || userId == -1) throw new NotAuthorizedException();
+        var author = await auth.GetCurrentUserAsync();
+        if (author is null) 
+            throw new Exception($"User with id {userId} was not found");
         
-        var item = await itemRepository.GetByIdAsync(commentModel.ItemId);
-        if (item is null) throw new ItemNotFoundException();
-
-        await validatorManager.ValidateUserInProjectAsync(item.ProjectId);
-        var commentEntity = CommentMapper.ToEntity(commentModel);
-
-        commentEntity.AuthorId = (int)userId;
-
-        await commentRepository.CreateAsync(commentEntity);
-
-        if (attachment is not null)
-        {
-            var docPath = Environment.GetEnvironmentVariable("ATTACHMENT_STORAGE_PATH");
-
-            if (string.IsNullOrEmpty(docPath))
-                throw new ArgumentNullException("Переменная окружения ATTACHMENT_STORAGE_PATH не задана");
-
-            Directory.CreateDirectory(docPath);
-
-            var uniqueFileName = $"{Guid.NewGuid()}_{attachment.FileName}";
-
-            var filePath = Path.Combine(docPath, uniqueFileName);
-
-            await using (var stream = new FileStream(filePath, FileMode.Create))
-            {
-                await attachment.CopyToAsync(stream);
-            }
-
-            docPath = $"/{uniqueFileName}";
-
-            var attachmentEntity = new AttachmentEntity 
-            { 
-                AuthorId = (int)userId ,
-                UploadedAt = DateTime.UtcNow,
-                CommentId = commentEntity.Id,
-                FilePath = docPath,
-            };
-
-            await attachmentRepository.CreateAsync(attachmentEntity);
-
-           
-        }
-
-        var model = new SharedLibrary.Models.AnalyticModels.TaskHistoryModel
-        {
-            FieldName = "Комментарий",
-            OldValue = "",
-            NewValue = commentModel.Text,
-            ItemId = item.Id,
-            UserId = (int)auth.GetCurrentUserId()!,
-            ChangedAt = DateTime.UtcNow
-        };
-
-        await httpClient.PostAsJsonAsync("create", model);
-
-        return commentEntity.Id;
+        if (author.Roles.All(x=>x != "Admin") || task.AuthorId != author.Id) 
+            throw new Exception($"Permission denied for item with id {taskId}");
+        
+        var user = await userRepository.GetByIdAsync(userId);
+        if (user is null) throw new Exception($"User with id {userId} was not found");
+        task.Users.Add(user);
+        taskRepository.Update(task);
+        userRepository.Update(user);
+        
+        return task.Id;
     }
-
-    public async Task<ICollection<CommentModel>> GetComments(int itemId)
+    
+    public async Task<IEnumerable<TaskResponse>> GetByCurrentUser()
     {
         var userId = auth.GetCurrentUserId();
-        if (userId is null || userId == -1) throw new NotAuthorizedException();
+        if (userId == Guid.Empty) throw new Exception($"User with id {userId} was not found");
+        var tasks = await taskRepository.ListAsync(task=>task.AuthorId == userId || task.Users.Any(user=>user.Id == userId));
+        return tasks.Select(x => x.ToTaskResponse());
+    }
 
-        var item = await itemRepository.GetByIdAsync(itemId);
-        if (item is null) throw new ItemNotFoundException();
+    public async Task<ICollection<TaskResponse>> GetByUserId(Guid userId)
+    {
+        var currentUserRoles = auth.GetCurrentUserRoles();
+        if (currentUserRoles.All(x => x != UserRoles.Admin))
+            throw new Exception($"Permission denied for task with id {userId}");
+        
+        var tasks = await taskRepository.ListAsync(task=>task.AuthorId == userId || task.Users.Any(user=>user.Id == userId));
 
-        await validatorManager.ValidateUserInProjectAsync(item.ProjectId);
-
-        var comments = commentRepository.GetByItemId(itemId);
-
-        var commentsModels = await Task.WhenAll(
-            comments.Select(c => CommentMapper.ToModel(c, userRepository))
-        );
-
-        return commentsModels.ToList();
+        return tasks.Select(x=>x.ToTaskResponse()).ToList();
     }
 }

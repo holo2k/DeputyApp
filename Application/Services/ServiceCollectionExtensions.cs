@@ -22,6 +22,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAnalyticsService, AnalyticsService>();
         services.AddScoped<IFeedbackService, FeedbackService>();
         services.AddScoped<ICatalogService, CatalogService>();
+        services.AddScoped<ITaskService, TaskService>();
         
         return services;
     }
