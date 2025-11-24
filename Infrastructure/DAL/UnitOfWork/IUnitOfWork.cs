@@ -14,6 +14,8 @@ public interface IUnitOfWork : IAsyncDisposable
     IFeedbackRepository Feedbacks { get; }
     IChatRepository Chats { get; }
     ITaskRepository Tasks { get; }
+    IEventAttachmentRepository EventAttachments { get; }
+    IUserEventRepository UserEvents { get; }
 
 
     Task<int> SaveChangesAsync();

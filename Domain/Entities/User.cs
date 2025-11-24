@@ -12,9 +12,10 @@ public class User
 
     public Guid? DeputyId { get; set; }
     public virtual User? Deputy { get; set; }
-    public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
-    public ICollection<Post> Posts { get; set; } = new List<Post>();
-    public ICollection<Document> Documents { get; set; } = new List<Document>();
-    public ICollection<Event> EventsOrganized { get; set; } = new List<Event>();
-    public ICollection<TaskEntity> Tasks { get; set; } = new List<TaskEntity>();
+    public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
+    public virtual ICollection<Post> Posts { get; set; } = new List<Post>();
+    public virtual ICollection<Document> Documents { get; set; } = new List<Document>();
+    public virtual ICollection<Event> EventsOrganized { get; set; } = new List<Event>();
+    public virtual ICollection<TaskEntity> Tasks { get; set; } = new List<TaskEntity>();
+    public virtual ICollection<UserEvent> Events { get; set; } = new List<UserEvent>();
 }

@@ -1,4 +1,5 @@
-﻿using Domain.Entities;
+﻿using System.Collections.Generic;
+using Domain.Entities;
 using Infrastructure.DAL.Repository.Abstractions;
 using Microsoft.EntityFrameworkCore;
 
@@ -26,5 +27,12 @@ public class EventRepository : GenericRepository<Event>, IEventRepository
             .Where(e => e.StartAt >= from && e.StartAt <= to && !e.IsPublic && e.OrganizerId == userId)
             .OrderBy(e => e.StartAt)
             .ToListAsync();
+    }
+
+    public async Task<Event?> GetWithDetailsAsync(Guid id)
+    {
+        return await Set.Include(e => e.Attachments).ThenInclude(a => a.Document)
+                    .Include(e => e.Participants).ThenInclude(p => p.User)
+                    .FirstOrDefaultAsync(e => e.Id == id);
     }
 }

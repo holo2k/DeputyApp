@@ -1,11 +1,11 @@
-﻿using Application.Notifications;
+﻿using System.Linq.Expressions;
+using Application.Notifications;
 using Application.Services.Abstractions;
 using DeputyApp.DAL.UnitOfWork;
 using Domain.Entities;
+using Domain.Enums;
 using Hangfire;
 using Newtonsoft.Json;
-using System.Linq.Expressions;
-using System.Text.Json.Serialization;
 using Task = System.Threading.Tasks.Task;
 
 namespace Application.Services.Implementations;
@@ -100,5 +100,70 @@ public class EventService : IEventService
             BackgroundJob.Schedule(methodCall, delay);
         }
         // Если событие уже наступило или почти наступило — уведомление не планируем
+    }
+
+    public async Task AttachDocumentAsync(Guid eventId, Guid documentId, Guid uploadedById, string? description = null)
+    {
+        var ev = await _uow.Events.GetByIdAsync(eventId);
+        if (ev == null)
+            throw new KeyNotFoundException("Event not found");
+
+        var doc = await _uow.Documents.GetByIdAsync(documentId);
+        if (doc == null)
+            throw new KeyNotFoundException("Document not found");
+
+        var attachment = new EventAttachment
+        {
+            Id = Guid.NewGuid(),
+            EventId = eventId,
+            DocumentId = documentId,
+            UploadedById = uploadedById,
+            Description = description
+        };
+
+        await _uow.EventAttachments.AddAsync(attachment); // нужно добавить репозиторий/таблицу
+        await _uow.SaveChangesAsync();
+    }
+
+    public async Task RSVPAsync(Guid eventId, Guid userId, AttendeeStatus status, Guid? excuseDocumentId = null, string? excuseNote = null)
+    {
+        var ev = await _uow.Events.GetByIdAsync(eventId);
+        if (ev == null)
+            throw new KeyNotFoundException("Event not found");
+
+        var existing = (await _uow.UserEvents.FindAsync(ue => ue.EventId == eventId && ue.UserId == userId)).FirstOrDefault();
+        if (existing == null)
+        {
+            var ue = new UserEvent
+            {
+                EventId = eventId,
+                UserId = userId,
+                Status = status,
+                ExcuseDocumentId = excuseDocumentId,
+                ExcuseNote = excuseNote,
+                UpdatedAt = DateTimeOffset.UtcNow
+            };
+            await _uow.UserEvents.AddAsync(ue);
+        }
+        else
+        {
+            existing.Status = status;
+            existing.ExcuseDocumentId = excuseDocumentId;
+            existing.ExcuseNote = excuseNote;
+            existing.UpdatedAt = DateTimeOffset.UtcNow;
+            _uow.UserEvents.Update(existing);
+        }
+
+        await _uow.SaveChangesAsync();
+    }
+
+    public async Task<IEnumerable<UserEvent>> GetAttendeesAsync(Guid eventId)
+    {
+        return await _uow.UserEvents.GetByEventIdAsync(eventId);
+    }
+
+    public async Task<Event?> GetWithDetailsAsync(Guid id)
+    {
+        return await _uow.Events.GetWithDetailsAsync(id);
     }
 }

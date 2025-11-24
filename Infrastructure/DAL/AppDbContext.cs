@@ -85,6 +85,9 @@ public class AppDbContext : DbContext
             b.HasOne(x => x.Organizer).WithMany(u => u.EventsOrganized).HasForeignKey(x => x.OrganizerId)
                 .OnDelete(DeleteBehavior.SetNull);
             b.HasIndex(x => x.StartAt);
+            b.Property(x => x.Type).HasConversion<int>().IsRequired();
+            b.HasMany(e => e.Attachments).WithOne(a => a.Event).HasForeignKey(a => a.EventId).OnDelete(DeleteBehavior.Cascade);
+            b.HasMany(e => e.Participants).WithOne(pe => pe.Event).HasForeignKey(pe => pe.EventId).OnDelete(DeleteBehavior.Cascade);
         });
 
 
@@ -121,6 +124,22 @@ public class AppDbContext : DbContext
             b.HasKey(x => x.Id);
             b.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.SetNull);
             b.Property(x => x.Message).IsRequired();
+        });
+
+        modelBuilder.Entity<EventAttachment>(b =>
+        {
+            b.HasKey(x => x.Id);
+            b.HasOne(a => a.Document).WithMany().HasForeignKey(a => a.DocumentId).OnDelete(DeleteBehavior.Restrict);
+            b.HasIndex(a => a.EventId);
+        });
+
+        modelBuilder.Entity<UserEvent>(b =>
+        {
+            b.HasKey(ue => new { ue.UserId, ue.EventId });
+            b.HasOne(ue => ue.User).WithMany(u => u.Events).HasForeignKey(ue => ue.UserId).OnDelete(DeleteBehavior.Cascade);
+            b.HasOne(ue => ue.Event).WithMany(e => e.Participants).HasForeignKey(ue => ue.EventId).OnDelete(DeleteBehavior.Cascade);
+            b.HasOne(ue => ue.ExcuseDocument).WithMany().HasForeignKey(ue => ue.ExcuseDocumentId).OnDelete(DeleteBehavior.Restrict);
+            b.Property(ue => ue.Status).HasConversion<int>().IsRequired();
         });
     }
 }

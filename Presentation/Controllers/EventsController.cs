@@ -14,11 +14,40 @@ public class EventsController : ControllerBase
 {
     private readonly IAuthService _authService;
     private readonly IEventService _events;
+    private readonly IDocumentService _documentService;
 
-    public EventsController(IEventService events, IAuthService authService)
+    public EventsController(IEventService events, IAuthService authService, IDocumentService documentService)
     {
         _events = events;
         _authService = authService;
+        _documentService = documentService;
+    }
+
+    [HttpPost("{id}/attachments")]
+    [Authorize(Roles = UserRoles.Admin)]
+    [RequestSizeLimit(50_000_000)]
+    public async Task<IActionResult> UploadAttachment(Guid id, IFormFile file, [FromBody] string? description)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest("file required");
+
+        using var s = file.OpenReadStream();
+        // сохраняем документ глобально через DocumentService (upload -> returns Document)
+        var doc = await _documentService.UploadAsync(file.FileName, s, file.ContentType, _authService.GetCurrentUserId(), null);
+        await _events.AttachDocumentAsync(id, doc.Id, _authService.GetCurrentUserId(), description);
+        return Ok();
+    }
+
+    [HttpPost("{id}/rsvp")]
+    [Authorize]
+    public async Task<IActionResult> Rsvp(Guid id, [FromBody] RsvpRequest req)
+    {
+        var userId = _authService.GetCurrentUserId();
+        if (userId == Guid.Empty)
+            return Unauthorized();
+
+        await _events.RSVPAsync(id, userId, req.Status, req.ExcuseDocumentId, req.ExcuseNote);
+        return NoContent();
     }
 
     /// <summary>
@@ -52,6 +81,35 @@ public class EventsController : ControllerBase
 
         return Ok(dtoList);
     }
+
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetById(Guid id)
+    {
+        var ev = await _events.GetWithDetailsAsync(id);
+
+        if (!ev.IsPublic)
+            return Forbid("Через этот эндпоинт нет доступа к приватным событиям");
+
+        if (ev == null)
+            return NotFound();
+
+        var dto = new EventDetailDto
+        {
+            Id = ev.Id,
+            Title = ev.Title,
+            Type = ev.Type,
+            EndAt = ev.EndAt,
+            StartAt = ev.StartAt,
+            Description = ev.Description,
+            IsPublic = ev.IsPublic,
+            Location = ev.Location,
+            Attachments = ev.Attachments.Select(a => new AttachmentDto(a.Id, a.DocumentId, a.Document.FileName, a.Document.Url, a.Description)).ToList(),
+            Attendees = ev.Participants.Select(p => new AttendeeDto(p.UserId, p.User.FullName, p.Status, p.ExcuseDocumentId, p.ExcuseNote)).ToList()
+        };
+
+        return Ok(dto);
+    }
+
 
     /// <summary>
     ///     Получить список предстоящих событий в указанном диапазоне дат.
