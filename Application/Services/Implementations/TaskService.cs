@@ -8,7 +8,7 @@ using Infrastructure.DAL.Repository.Abstractions;
 
 namespace Application.Services.Implementations;
 
-public class TaskService(HttpClient httpClient, IAuthService auth, IUnitOfWork uow) : ITaskService
+public class TaskService(IAuthService auth, IUnitOfWork uow) : ITaskService
 {
     private readonly ITaskRepository taskRepository = uow.Tasks;
     private readonly IUserRepository userRepository = uow.Users;
