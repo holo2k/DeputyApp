@@ -1,9 +1,12 @@
 ﻿using System.Linq.Expressions;
+using System.Net.Http;
+using System.Net.Http.Json;
 using Application.Notifications;
 using Application.Services.Abstractions;
 using DeputyApp.DAL.UnitOfWork;
 using Domain.Entities;
 using Domain.Enums;
+using Domain.GlobalModels;
 using Hangfire;
 using Newtonsoft.Json;
 using Task = System.Threading.Tasks.Task;
@@ -13,14 +16,19 @@ namespace Application.Services.Implementations;
 public class EventService : IEventService
 {
     private readonly IUnitOfWork _uow;
-    private readonly TgEventNotificationHandler _tgNotificationHandler;
     private readonly IPhoneNotificationService _phoneNotificationService;
+    private readonly HttpClient _httpClient;
+    private readonly string _internalApiUrl;
 
-    public EventService(IUnitOfWork uow, TgEventNotificationHandler tgNotificationHandler, IPhoneNotificationService phoneNotificationService)
+    public EventService(
+        IUnitOfWork uow,
+        IPhoneNotificationService phoneNotificationService,
+        IHttpClientFactory httpClientFactory)
     {
         _uow = uow;
-        _tgNotificationHandler = tgNotificationHandler;
-        _phoneNotificationService=phoneNotificationService;
+        _phoneNotificationService = phoneNotificationService;
+        _httpClient = httpClientFactory.CreateClient();
+        _internalApiUrl = Environment.GetEnvironmentVariable("INTERNAL_API") ?? "http://localhost:5001/api/telegram";
     }
 
     public async Task<Event> CreateAsync(Event ev)
@@ -33,9 +41,13 @@ public class EventService : IEventService
 
         var jsonEvent = JsonConvert.SerializeObject(ev);
 
-        // Отправка уведомления в Telegram
-        // TODO разделение не личные ивенты
-        await _tgNotificationHandler.OnEventCreatedOrUpdated(ev.Title, "Мероприятие");
+        // Отправка уведомления через внутреннее API
+        var model = new NotificationModel
+        {
+            Title = ev.Title,
+            Type = "Мероприятие"
+        };
+        await _httpClient.PostAsJsonAsync($"{_internalApiUrl}/send-notify", model);
 
         // Отправка на телефон
         if (ev.IsPublic)

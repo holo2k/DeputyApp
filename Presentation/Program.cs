@@ -51,7 +51,7 @@ public static class Program
 
         await InitializeDatabaseAsync(app);
 
-        await ConfigurePipelineAsync(app); // async init webhook/polling
+        await ConfigurePipelineAsync(app); // async init
 
         try
         {
@@ -122,8 +122,6 @@ public static class Program
 
         builder.Services.AddDeputyAppServices();
 
-        var tgChatId = config.GetValue<string>("TELEGRAM_CHAT_ID") ?? "";
-
         builder.Services.AddCors(options =>
         {
             options.AddPolicy("AllowAll", policy =>
@@ -149,6 +147,8 @@ public static class Program
         // Controllers + Swagger
         builder.Services.AddControllers();
         builder.Services.AddEndpointsApiExplorer();
+        builder.Services.AddHttpClient();
+
         ConfigureSwagger(builder);
 
         // Telegram - регистрация и выбор режима
@@ -243,33 +243,7 @@ public static class Program
 
     private static void ConfigureTelegramNotify(WebApplicationBuilder builder)
     {
-        // читаем конфиг один раз при старте
-        UseWebHook = builder.Configuration.GetValue<bool>("Telegram:UseWebhook");
-        WebhookUrl = builder.Configuration["Telegram:WebhookUrl"];
-
-        var tgToken = builder.Configuration.GetValue<string>("TELEGRAM_BOT_TOKEN") ??
-                      builder.Configuration.GetValue<string>("Telegram:Token") ?? "";
-
-        // singleton client
-        builder.Services.AddSingleton<ITelegramBotClient>(_ => new TelegramBotClient(tgToken));
-
-        // core handlers
         builder.Services.AddScoped<TelegramMessageHandler>();
-        builder.Services.AddScoped<TgEventNotificationHandler>();
-
-        // notification service (можно передать default chat id из env)
-        var defaultChatId = builder.Configuration.GetValue<string>("TELEGRAM_CHAT_ID");
-
-        // регистрируем конкретную реализацию как singleton
-        builder.Services.AddSingleton<TelegramNotificationService>(sp =>
-            new TelegramNotificationService(sp.GetRequiredService<ITelegramBotClient>(), defaultChatId));
-
-        // связываем интерфейс с той же инстанцией
-        builder.Services.AddSingleton<INotificationService>(sp => sp.GetRequiredService<TelegramNotificationService>());
-
-        // hosted polling worker только если не webhook
-        if (!UseWebHook)
-            builder.Services.AddHostedService<TelegramBotWorker>();
     }
 
     private static async Task InitializeDatabaseAsync(WebApplication app)
@@ -300,42 +274,6 @@ public static class Program
         app.MapHub<NotificationHub>("/hubs/notifications");
         app.MapControllers();
 
-        // Telegram webhook / polling init
-        var botClient = app.Services.GetRequiredService<ITelegramBotClient>();
         var ct = CancellationToken.None;
-
-        try
-        {
-            if (UseWebHook)
-            {
-                if (string.IsNullOrEmpty(WebhookUrl))
-                    throw new Exception("WebhookUrl не задан в конфигурации");
-
-                var setReq = new SetWebhookRequest
-                {
-                    AllowedUpdates = new[] { UpdateType.Message, UpdateType.CallbackQuery },
-                    Url = WebhookUrl
-                };
-                var setResult = await botClient.SendRequest(setReq, ct);
-                Log.Information("SetWebhook result: {Result}", setResult);
-
-                var info = await botClient.SendRequest(new GetWebhookInfoRequest(), ct);
-                Log.Information("Webhook url: {Url}, pending: {Pending}", info?.Url, info?.PendingUpdateCount);
-            }
-            else
-            {
-                // удаляем webhook чтобы polling не конфликтовал
-                var delResult = await botClient.SendRequest(new DeleteWebhookRequest { DropPendingUpdates = true }, ct);
-                Log.Information("DeleteWebhook result: {Result}", delResult);
-
-                var info = await botClient.SendRequest(new GetWebhookInfoRequest(), ct);
-                Log.Information("Webhook info after delete: {Url}", info?.Url ?? "<none>");
-            }
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Telegram webhook/polling init failed");
-            // не падаем полностью, но логируем и продолжаем
-        }
     }
 }

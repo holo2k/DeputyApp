@@ -1,7 +1,4 @@
-﻿using Application.Notifications;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Telegram.Bot;
+﻿using Telegram.Bot;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Requests;
 using Telegram.Bot.Types.Enums;
@@ -10,11 +7,12 @@ public class TelegramBotWorker : BackgroundService
 {
     private readonly ITelegramBotClient _botClient;
     private readonly IServiceScopeFactory _scopeFactory;
-
-    public TelegramBotWorker(ITelegramBotClient botClient, IServiceScopeFactory scopeFactory)
+    private readonly HttpClient _httpClient;
+    public TelegramBotWorker(ITelegramBotClient botClient, IServiceScopeFactory scopeFactory, IHttpClientFactory httpClientFactory)
     {
         _botClient = botClient;
         _scopeFactory = scopeFactory;
+        _httpClient = httpClientFactory.CreateClient();
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -41,8 +39,8 @@ public class TelegramBotWorker : BackgroundService
                 if (update.Message != null && !string.IsNullOrEmpty(update.Message.Text))
                 {
                     await using var scope = _scopeFactory.CreateAsyncScope();
-                    var messageHandler = scope.ServiceProvider.GetRequiredService<TelegramMessageHandler>();
-                    await messageHandler.HandleStartCommand(update.Message.Chat.Id);
+                    var internalApiUrl = Environment.GetEnvironmentVariable("API_ADDRESS");
+                    await _httpClient.PostAsJsonAsync($"{internalApiUrl}/post-message", update);
                 }
             },
             async (bot, exception, token) => { Console.WriteLine($"Ошибка polling: {exception.Message}"); },

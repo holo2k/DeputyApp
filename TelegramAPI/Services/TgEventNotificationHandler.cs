@@ -1,24 +1,27 @@
 ﻿using Domain.Entities;
-using Application.Services.Abstractions;
-using DeputyApp.DAL.UnitOfWork;
 using Task = System.Threading.Tasks.Task;
 
-namespace Application.Notifications;
+namespace Services;
 
 public class TgEventNotificationHandler
 {
     private readonly TelegramNotificationService _telegram;
-    private readonly IUnitOfWork _uow;
+    private readonly HttpClient _httpClient;
 
-    public TgEventNotificationHandler(TelegramNotificationService telegram, IUnitOfWork uow)
+    public TgEventNotificationHandler(TelegramNotificationService telegram, IHttpClientFactory httpClientFactory)
     {
         _telegram = telegram;
-        _uow = uow;
+        _httpClient = httpClientFactory.CreateClient();
     }
 
     public async Task OnEventCreatedOrUpdated(string title, string type)
     {
-        var chats = await _uow.Chats.ListAsync();
+        var internalApiUrl = Environment.GetEnvironmentVariable("API_ADDRESS");
+
+        var chats = await _httpClient.GetFromJsonAsync<List<Chats>>($"{internalApiUrl}/get-chats");
+
+        if (chats == null)
+            return;
 
         var tasks = chats.Select(async chat =>
         {
@@ -34,4 +37,5 @@ public class TgEventNotificationHandler
 
         await Task.WhenAll(tasks);
     }
+
 }

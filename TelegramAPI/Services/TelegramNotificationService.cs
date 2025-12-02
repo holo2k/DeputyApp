@@ -1,7 +1,7 @@
-﻿using Application.Services.Abstractions;
-using Telegram.Bot;
+﻿using Telegram.Bot;
 using Telegram.Bot.Requests;
 using Telegram.Bot.Types.Enums;
+using TelegramAPI.Services;
 
 public class TelegramNotificationService : INotificationService
 {

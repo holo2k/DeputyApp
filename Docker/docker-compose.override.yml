@@ -14,3 +14,17 @@ services:
       - "com.microsoft.visualstudio.debuggee.killprogram=true"
     ports:
       - "5000:80"
+
+  telegram-api:
+    volumes:
+      - ..:/workspace:cached
+    working_dir: /workspace/TelegramAPI
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: "http://+:80"
+    labels:
+      - "com.microsoft.visualstudio.debuggee.program=/workspace/TelegramAPI/bin/Debug/net9.0/TelegramAPI.dll"
+      - "com.microsoft.visualstudio.debuggee.workingdirectory=/workspace/TelegramAPI"
+      - "com.microsoft.visualstudio.debuggee.killprogram=true"
+    ports:
+      - "5001:80"

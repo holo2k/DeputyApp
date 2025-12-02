@@ -62,8 +62,33 @@ services:
       Jwt__Audience: deputyapp
       Telegram__UseWebhook: false
       Telegram__WebhookUrl: https://irit-rtf-ep.ru/api/telegram
+      INTERNAL_API: http://telegram-api/api/telegram
     ports:
       - "5000:80"
+    networks:
+      - deputy-net
+
+  telegram-api:
+    build:
+      context: ..
+      dockerfile: TelegramAPI/Dockerfile
+    container_name: telegram-api
+    restart: on-failure
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      DB_CONNECTION: Host=postgres;Port=5432;Database=deputy;Username=postgres;Password=postgres
+      TELEGRAM_BOT_TOKEN: "8199749012:AAHpLWXWRbOZllvggRBtWC76RGItI9-xWQ4"
+      TELEGRAM_CHAT_ID: ""
+      Telegram__UseWebhook: false
+      Telegram__WebhookUrl: https://irit-rtf-ep.ru/api/telegram
+      API_ADDRESS: http://deputy-api/api/internal
+    ports:
+      - "5001:80"
     networks:
       - deputy-net
 
