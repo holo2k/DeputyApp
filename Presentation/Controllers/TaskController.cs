@@ -12,17 +12,17 @@ public class TaskController(ITaskService taskService) : ControllerBase
 {
     [HttpPost("create")]
     [Authorize]
-    public async Task<IActionResult> Create(CreateTaskRequest taskRequest)
+    public async Task<IActionResult> Create(TaskCreateRequest request)
     {
-        var taskId = await taskService.CreateAsync(taskRequest);
+        var taskId = await taskService.CreateAsync(request);
         return Ok(taskId);
     }
 
     [HttpPost("update/{taskId}")]
     [Authorize]
-    public async Task<IActionResult> Update(Guid taskId, CreateTaskRequest taskRequest)
+    public async Task<IActionResult> Update(Guid taskId, TaskCreateRequest request)
     {
-        var task = await taskService.Update(taskRequest, taskId);
+        var task = await taskService.Update(request, taskId);
         return Ok(task);
     }
 
@@ -48,31 +48,45 @@ public class TaskController(ITaskService taskService) : ControllerBase
         return Ok(await taskService.GetByIdAsync(id));
     }
 
-    [HttpPost("set-item-archived-status/{taskId}")]
+    [HttpPost("set-tasks-archived-status/{taskId}")]
     [Authorize]
-    public async Task<IActionResult> SetItemArchivedStatus(Guid taskId, [FromQuery] bool archive)
+    public async Task<IActionResult> SetTaskArchivedStatus(Guid taskId, [FromQuery] bool archive)
     {
         return Ok(await taskService.SetArchivedStatus(taskId, archive));
     }
 
     [HttpPost("add-user-task/{taskId}")]
     [Authorize]
-    public async Task<IActionResult> AddUserToItem(Guid taskId, [FromQuery] Guid userId)
+    public async Task<IActionResult> AddUserToTask(Guid taskId, [FromQuery] Guid userId)
     {
         return Ok(await taskService.AddUserAsync(userId, taskId));
     }
 
-    [HttpGet("get-items-by-current-user")]
+    [HttpGet("get-tasks-by-current-user")]
     [Authorize]
     public async Task<IActionResult> GetTasksByCurrentUser()
     {
         return Ok(await taskService.GetByCurrentUser());
     }
 
-    [HttpGet("get-items-by-user/{userId}")]
-    [Authorize]
+    [HttpGet("get-tasks-by-user/{userId}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetTasksByUserId(Guid userId)
     {
         return Ok(await taskService.GetByUserId(userId));
+    }
+
+    [HttpGet("get-assigned-tasks")]
+    [Authorize]
+    public async Task<IActionResult> GetAssignedTasks()
+    {
+        return Ok(await taskService.GetAssignedTasks());
+    }
+    
+    [HttpGet("get-author-tasks")]
+    [Authorize]
+    public async Task<IActionResult> GetAuthorTasks()
+    {
+        return Ok(await taskService.GetAuthorTasks());
     }
 }

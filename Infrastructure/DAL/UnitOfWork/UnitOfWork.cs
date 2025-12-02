@@ -23,6 +23,8 @@ public class UnitOfWork : IUnitOfWork
         Chats = new ChatRepository(db);
         EventAttachments = new EventAttachmentRepository(db);
         UserEvents = new UserEventRepository(db);
+        Statuses = new StatusRepository(db);
+        Tasks = new TaskRepository(db);
     }
 
     public IUserRepository Users { get; }
@@ -37,6 +39,7 @@ public class UnitOfWork : IUnitOfWork
     public IFeedbackRepository Feedbacks { get; }
     public IEventAttachmentRepository EventAttachments { get; }
     public IUserEventRepository UserEvents { get; }
+    public IStatusRepository Statuses { get; }
 
     public async Task<int> SaveChangesAsync()
     {

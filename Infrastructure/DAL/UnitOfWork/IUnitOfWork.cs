@@ -16,6 +16,7 @@ public interface IUnitOfWork : IAsyncDisposable
     ITaskRepository Tasks { get; }
     IEventAttachmentRepository EventAttachments { get; }
     IUserEventRepository UserEvents { get; }
+    IStatusRepository Statuses { get; }
 
 
     Task<int> SaveChangesAsync();

@@ -22,6 +22,10 @@ using Shared.Middleware;
 using System.Reflection;
 using System.Security.Claims;
 using System.Text;
+using Application;
+using Application.Validators;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using Telegram.Bot;
 using Telegram.Bot.Requests;
 using Telegram.Bot.Types.Enums;
@@ -41,10 +45,8 @@ public static class Program
 
         var builder = WebApplication.CreateBuilder(args);
         var config = builder.Configuration;
-
         ConfigureLogging(builder);
         ConfigureServices(builder);
-
         var app = builder.Build();
 
         await InitializeDatabaseAsync(app);
@@ -119,7 +121,6 @@ public static class Program
         builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
         builder.Services.AddDeputyAppServices();
-        builder.Services.AddScoped<IEventService, EventService>();
 
         var tgChatId = config.GetValue<string>("TELEGRAM_CHAT_ID") ?? "";
 

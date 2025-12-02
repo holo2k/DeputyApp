@@ -12,7 +12,7 @@ public class TaskResponse
     public DateTime StartDate { get; set; }
     public DateTime ExpectedEndDate { get; set; }
     public int Priority { get; set; }
-    public int? StatusId { get; set; }
+    public string Status { get; set; }
     public bool IsArchived { get; set; }
     public ICollection<User> Users { get; set; } = new List<User>();
 }

@@ -89,7 +89,7 @@ public class AuthService : IAuthService
 
         if (id != Guid.Empty)
         {
-            var user = await _userRepository.GetByIdAsync(id, x=>x.Tasks);
+            var user = await _userRepository.FindByIdAsync(id);
             return new UserDto(id, user.Email, user.FullName, user.JobTitle, user.Posts, user.EventsOrganized,
                 user.Documents,
                 user.Tasks,

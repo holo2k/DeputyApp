@@ -5,7 +5,7 @@ namespace Application.Mappers;
 
 public static class TaskMapper
 {
-    public static TaskResponse ToTaskResponse(this TaskEntity task)
+    public static TaskResponse ToTaskResponse(this TaskEntity task, string status)
     {
         return new TaskResponse
         {
@@ -17,9 +17,22 @@ public static class TaskMapper
             StartDate = task.StartDate,
             ExpectedEndDate = task.ExpectedEndDate,
             Priority = task.Priority,
-            StatusId = task.StatusId,
+            Status = status,
             IsArchived = task.IsArchived,
             Users = task.Users.ToList()
+        };
+    }
+
+    public static TaskEntity ToTaskEntity(this TaskCreateRequest task, Guid currentUserId, Guid statusId)
+    {
+        return new TaskEntity
+        {
+            AuthorId = currentUserId,
+            Description = task.Description,
+            ExpectedEndDate = task.ExpectedEndDate,
+            Priority = task.Priority,
+            StatusId = statusId,
+            Title = task.Title,
         };
     }
 }

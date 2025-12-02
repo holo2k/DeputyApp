@@ -23,6 +23,7 @@ public class AppDbContext : DbContext
     public DbSet<AnalyticsEvent> AnalyticsEvents => Set<AnalyticsEvent>();
     public DbSet<Feedback> Feedbacks => Set<Feedback>();
     public DbSet<TaskEntity> Tasks => Set<TaskEntity>();
+    public DbSet<Status> Statuses => Set<Status>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -42,7 +43,7 @@ public class AppDbContext : DbContext
             b.Property(x => x.PasswordHash).IsRequired();
 
             b.HasOne(x => x.Deputy).WithMany().HasForeignKey("DeputyId").IsRequired(false)
-                .OnDelete(DeleteBehavior.Restrict); // Юзер → заместитель
+                .OnDelete(DeleteBehavior.Restrict); 
 
             b.HasMany(u => u.Tasks).WithMany(t => t.Users).UsingEntity(j => j.ToTable("UserTasks")); // Юзер ↔ таск
         });
@@ -122,7 +123,21 @@ public class AppDbContext : DbContext
             b.Property(x => x.Title).IsRequired();
             b.Property(x => x.Description);
             b.Property(x => x.Priority).IsRequired();
-            b.HasMany(t => t.Users).WithMany(u => u.Tasks).UsingEntity(j => j.ToTable("UserTasks")); // Таск ↔ юзер
+            b.HasMany(t => t.Users)
+                .WithMany(u => u.Tasks)
+                .UsingEntity(j => j.ToTable("UserTasks")); // Таск ↔ юзер
+            b.HasOne(t => t.Status)
+                .WithMany(s => s.TaskEntities)
+                .HasForeignKey(t => t.StatusId);
+            
+        });
+
+        modelBuilder.Entity<Status>(b =>
+        {
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Name).IsRequired().IsUnicode();
+            b.Property(x => x.IsDefault).IsRequired();
+            b.HasMany(s => s.TaskEntities).WithOne(t => t.Status);
         });
 
         modelBuilder.Entity<EventAttachment>(b =>
