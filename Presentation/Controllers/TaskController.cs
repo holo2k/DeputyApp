@@ -1,6 +1,7 @@
 ﻿using Application.Dtos;
 using Application.Mappers;
 using Application.Services.Abstractions;
+using Domain.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -35,7 +36,7 @@ public class TaskController(ITaskService taskService) : ControllerBase
     }
 
     [HttpGet("get-tasks")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = UserRoles.Admin)]
     public async Task<IActionResult> GetAllTasks()
     {
         return Ok(await taskService.GetAllAsync());
@@ -70,7 +71,7 @@ public class TaskController(ITaskService taskService) : ControllerBase
     }
 
     [HttpGet("get-items-by-user/{userId}")]
-    [Authorize]
+    [Authorize(Roles = UserRoles.Admin)]
     public async Task<IActionResult> GetTasksByUserId(Guid userId)
     {
         return Ok(await taskService.GetByUserId(userId));
