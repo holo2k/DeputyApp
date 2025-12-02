@@ -1,4 +1,6 @@
-﻿namespace Domain.Entities;
+﻿using System.Text.Json.Serialization;
+
+namespace Domain.Entities;
 
 public class User
 {
@@ -16,6 +18,7 @@ public class User
     public virtual ICollection<Post> Posts { get; set; } = new List<Post>();
     public virtual ICollection<Document> Documents { get; set; } = new List<Document>();
     public virtual ICollection<Event> EventsOrganized { get; set; } = new List<Event>();
+    [JsonIgnore]
     public virtual ICollection<TaskEntity> Tasks { get; set; } = new List<TaskEntity>();
     public virtual ICollection<UserEvent> Events { get; set; } = new List<UserEvent>();
 }

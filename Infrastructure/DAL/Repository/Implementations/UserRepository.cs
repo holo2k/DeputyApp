@@ -25,11 +25,11 @@ public class UserRepository : GenericRepository<User>, IUserRepository
     public async Task<User?> FindByIdAsync(Guid id)
     {
         return await Set
-            .Include(x => x.UserRoles)
-            .ThenInclude(x => x.Role)
-            .Include(x => x.Documents)
-            .Include(x => x.Posts)
-            .Include(x => x.EventsOrganized)
+            .Include(user => user.UserRoles)
+            .ThenInclude(user => user.Role)
+            .Include(user => user.Documents)
+            .Include(user => user.Posts)
+            .Include(user => user.EventsOrganized)
             .FirstOrDefaultAsync(u => u.Id == id);
     }
 }

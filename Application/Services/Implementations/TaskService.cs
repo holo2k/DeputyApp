@@ -122,7 +122,7 @@ public class TaskService : ITaskService
         if (author is null) 
             throw new Exception($"User with id {userId} was not found");
         
-        if (author.Roles.All(x=>x != "Admin") || task.AuthorId != author.Id) 
+        if (!(author.Roles.All(x=>x != "Admin")) || task.AuthorId != author.Id) 
             throw new Exception($"Permission denied for item with id {taskId}");
         
         var user = await userRepository.GetByIdAsync(userId, x=>x.Tasks);
