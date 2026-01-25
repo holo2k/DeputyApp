@@ -29,6 +29,7 @@ using FluentValidation.AspNetCore;
 using Telegram.Bot;
 using Telegram.Bot.Requests;
 using Telegram.Bot.Types.Enums;
+using Domain.Entities;
 
 
 namespace Presentation;
@@ -116,6 +117,7 @@ public static class Program
         builder.Services.AddScoped<IUserRepository, UserRepository>();
         builder.Services.AddScoped<ICatalogRepository, CatalogRepository>();
         builder.Services.AddScoped<IPhoneNotificationService, PhoneNotificationService>();
+        builder.Services.AddScoped<IScheduleService<Event>, ScheduleService<Event>>();
 
         builder.Services.AddSingleton<IBlackListService, BlackListService>();
         builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();

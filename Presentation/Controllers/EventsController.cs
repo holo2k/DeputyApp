@@ -152,7 +152,6 @@ public class EventsController : ControllerBase
         return Ok(dtoList);
     }
 
-    //TODO
     /// <summary>
     ///     Создать приватное событие (только для авторизованных пользователей).
     /// </summary>

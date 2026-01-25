@@ -40,14 +40,6 @@ public class PostService : IPostService
         await _uow.Posts.AddAsync(post);
         await _uow.SaveChangesAsync();
 
-        // Отправка уведомления через внутреннее API
-        var model = new NotificationModel
-        {
-            Title = post.Title,
-            Type = "Пост"
-        };
-        await _httpClient.PostAsJsonAsync($"{_internalApiUrl}/send-notify", model);
-
         return post;
     }
 

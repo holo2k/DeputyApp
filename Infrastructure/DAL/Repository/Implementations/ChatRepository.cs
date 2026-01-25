@@ -13,6 +13,11 @@ public class ChatRepository : GenericRepository<Chats>, IChatRepository
         _db = db;
     }
 
+    public async Task<IEnumerable<Chats>> GetAll()
+    {
+        return await _db.Chats.ToListAsync();
+    }
+
     public async Task<Chats> GetByChatId(string id)
     {
         return await _db.Chats.FirstOrDefaultAsync(x => x.ChatId == id);

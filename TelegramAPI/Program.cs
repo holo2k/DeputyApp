@@ -1,7 +1,8 @@
 using System.Diagnostics;
 using System.Reflection;
+using Infrastructure.DAL.Repository.Abstractions;
+using Infrastructure.DAL.Repository.Implementations;
 using Microsoft.OpenApi.Models;
-using Services;
 using Telegram.Bot;
 using Telegram.Bot.Requests;
 using Telegram.Bot.Types.Enums;
@@ -116,6 +117,7 @@ public static class Program
 
         // core handlers
         builder.Services.AddScoped<TgEventNotificationHandler>();
+        builder.Services.AddScoped<IChatRepository, ChatRepository>();
 
         // notification service (можно передать default chat id из env)
         var defaultChatId = builder.Configuration.GetValue<string>("TELEGRAM_CHAT_ID");

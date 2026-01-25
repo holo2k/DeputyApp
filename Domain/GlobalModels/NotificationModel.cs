@@ -1,14 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Domain.Entities;
+using Domain.GlobalModels.Abstractions;
 
 namespace Domain.GlobalModels
 {
-    public class NotificationModel
+    public class NotificationModel<T> where T : INotifiable
     {
-        public string Title { get; set; }
-        public string Type { get; set; }
+        public T? Notification { get; set; } 
+
+        /// <summary>
+        /// Список ID пользователей для персональной отправки.
+        /// Если null или пустой — отправляем всем (broadcast).
+        /// </summary>
+        public List<Guid>? TargetUserIds { get; set; }
     }
 }

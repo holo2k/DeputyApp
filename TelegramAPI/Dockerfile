@@ -4,6 +4,8 @@ WORKDIR /repo
 
 COPY ["TelegramAPI/TelegramAPI.csproj", "TelegramAPI/"]
 COPY ["Domain/Domain.csproj", "Domain/"]
+COPY ["Infrastructure/Infrastructure.csproj", "Infrastructure/"]
+COPY ["Shared/Shared.csproj", "Shared/"]
 
 WORKDIR /repo/TelegramAPI
 RUN dotnet restore "TelegramAPI.csproj"

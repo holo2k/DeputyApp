@@ -39,7 +39,7 @@ services:
 
   api:
     build:
-      context: ..                 # <- корень решения (DeputyApp)
+      context: ..
       dockerfile: Presentation/Dockerfile
     container_name: deputy-api
     restart: on-failure

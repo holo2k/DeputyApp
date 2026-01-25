@@ -1,6 +1,6 @@
-﻿using Domain.GlobalModels;
+﻿using Domain.Entities;
+using Domain.GlobalModels;
 using Microsoft.AspNetCore.Mvc;
-using Services;
 using Telegram.Bot.Types;
 
 namespace TelegramAPI.Controllers;
@@ -11,11 +11,13 @@ public class TelegramController : ControllerBase
 {
     private readonly HttpClient _httpClient;
     private readonly TgEventNotificationHandler _tgNotificationHandler;
+    private readonly TelegramNotificationService _telegramNotificationService;
 
-    public TelegramController(IHttpClientFactory httpClientFactory, TgEventNotificationHandler tgNotificationHandler)
+    public TelegramController(IHttpClientFactory httpClientFactory, TgEventNotificationHandler tgNotificationHandler, TelegramNotificationService telegramNotificationService)
     {
         _httpClient = httpClientFactory.CreateClient();
         _tgNotificationHandler = tgNotificationHandler;
+        _telegramNotificationService = telegramNotificationService;
     }
 
     [HttpPost]
@@ -30,10 +32,18 @@ public class TelegramController : ControllerBase
         return Ok();
     }
 
-    [HttpPost("send-notify")]
-    public async Task<IActionResult> OnEventCreatedOrUpdated([FromBody] NotificationModel model)
+    [HttpPost("send-notify-event")]
+    public async Task<IActionResult> OnEventCreatedOrUpdated([FromBody] NotificationModel<Event> model)
     {
-        await _tgNotificationHandler.OnEventCreatedOrUpdated(model.Title, model.Type);
+        await _tgNotificationHandler.OnEventCreatedOrUpdated(model);
+
+        return Ok();
+    }
+
+    [HttpPost("send-message")]
+    public async Task<IActionResult> OnMessageSended([FromBody] DefaultMessageModel model)
+    {
+        await _telegramNotificationService.SendTelegramAsync(model.ChatId, model.Message);
 
         return Ok();
     }

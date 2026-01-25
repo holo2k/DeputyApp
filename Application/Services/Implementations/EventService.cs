@@ -1,8 +1,4 @@
-﻿using System.Linq.Expressions;
-using System.Net.Http;
-using System.Net.Http.Json;
-using Application.Notifications;
-using Application.Services.Abstractions;
+﻿using Application.Services.Abstractions;
 using DeputyApp.DAL.UnitOfWork;
 using Domain.Entities;
 using Domain.Enums;
@@ -17,18 +13,16 @@ public class EventService : IEventService
 {
     private readonly IUnitOfWork _uow;
     private readonly IPhoneNotificationService _phoneNotificationService;
-    private readonly HttpClient _httpClient;
-    private readonly string _internalApiUrl;
+    private readonly IScheduleService<Event> _scheduleService;
 
     public EventService(
         IUnitOfWork uow,
         IPhoneNotificationService phoneNotificationService,
-        IHttpClientFactory httpClientFactory)
+        IScheduleService<Event> scheduleService)
     {
         _uow = uow;
         _phoneNotificationService = phoneNotificationService;
-        _httpClient = httpClientFactory.CreateClient();
-        _internalApiUrl = Environment.GetEnvironmentVariable("INTERNAL_API") ?? "http://localhost:5001/api/telegram";
+        _scheduleService = scheduleService;
     }
 
     public async Task<Event> CreateAsync(Event ev)
@@ -39,24 +33,35 @@ public class EventService : IEventService
         await _uow.Events.AddAsync(ev);
         await _uow.SaveChangesAsync();
 
+        // после сохранения ev
         var jsonEvent = JsonConvert.SerializeObject(ev);
-
-        // Отправка уведомления через внутреннее API
-        var model = new NotificationModel
+        var model = new NotificationModel<Event>
         {
-            Title = ev.Title,
-            Type = "Мероприятие"
+            Notification = ev,
+            TargetUserIds = new List<Guid>()
         };
-        await _httpClient.PostAsJsonAsync($"{_internalApiUrl}/send-notify", model);
 
-        // Отправка на телефон
         if (ev.IsPublic)
         {
-            ScheduleNotificationsForAll(jsonEvent, ev.StartAt);
+            // уведомление о создании всем
+            _scheduleService.EnqueueCreatedForAll(jsonEvent, model);
+
+            // планирование напоминаний всем
+            _scheduleService.ScheduleRemindersForAll(jsonEvent, model, ev.StartAt);
         }
         else
         {
-            ScheduleNotificationsForUser(ev.OrganizerId.ToString()!, jsonEvent, ev.StartAt);
+            if (ev.OrganizerId != Guid.Empty)
+            {
+                model.TargetUserIds.Add((Guid)ev.OrganizerId!);
+
+                // немедленное уведомление организатору
+                BackgroundJob.Enqueue(() => _phoneNotificationService.SendToUserAsync(ev.OrganizerId.ToString()!, jsonEvent));
+                BackgroundJob.Enqueue(() => _scheduleService.SendTelegram(model));
+
+                // планирование напоминаний организатору
+                _scheduleService.ScheduleRemindersForUser(ev.OrganizerId.ToString()!, jsonEvent, model, ev.StartAt);
+            }
         }
 
         return ev;
@@ -67,11 +72,12 @@ public class EventService : IEventService
         return await _uow.Events.GetUpcomingAsync(from, to);
     }
 
-
     public async Task DeleteAsync(Guid id)
     {
         var e = await _uow.Events.GetByIdAsync(id);
-        if (e == null) return;
+        if (e == null) 
+            return;
+
         _uow.Events.Delete(e);
         await _uow.SaveChangesAsync();
     }
@@ -80,38 +86,6 @@ public class EventService : IEventService
     {
         var events = await _uow.Events.GetMyUpcomingAsync(from, to, userId);
         return events;
-    }
-
-    private void ScheduleNotificationsForAll(string jsonEvent, DateTimeOffset startAt)
-    {
-        // Уведомление при создании
-        BackgroundJob.Enqueue(() => _phoneNotificationService.SendToAllAsync(jsonEvent));
-
-        // Уведомления за день и за час
-        ScheduleDelayedNotification(() => _phoneNotificationService.SendToAllAsync(jsonEvent), startAt.AddDays(-1));
-        ScheduleDelayedNotification(() => _phoneNotificationService.SendToAllAsync(jsonEvent), startAt.AddHours(-1));
-    }
-
-    private void ScheduleNotificationsForUser(string userId, string jsonEvent, DateTimeOffset startAt)
-    {
-        // Уведомление при создании
-        BackgroundJob.Enqueue(() => _phoneNotificationService.SendToUserAsync(userId, jsonEvent));
-
-        // Уведомления за день и за час
-        ScheduleDelayedNotification(() => _phoneNotificationService.SendToUserAsync(userId, jsonEvent), startAt.AddDays(-1));
-        ScheduleDelayedNotification(() => _phoneNotificationService.SendToUserAsync(userId, jsonEvent), startAt.AddHours(-1));
-    }
-
-    private void ScheduleDelayedNotification(Expression<Func<Task>> methodCall, DateTimeOffset scheduledTime)
-    {
-        var delay = scheduledTime - DateTimeOffset.UtcNow;
-
-        // Планируем только если событие ещё не прошло
-        if (delay > TimeSpan.Zero)
-        {
-            BackgroundJob.Schedule(methodCall, delay);
-        }
-        // Если событие уже наступило или почти наступило — уведомление не планируем
     }
 
     public async Task AttachDocumentAsync(Guid eventId, Guid documentId, Guid uploadedById, string? description = null)
@@ -133,7 +107,7 @@ public class EventService : IEventService
             Description = description
         };
 
-        await _uow.EventAttachments.AddAsync(attachment); // нужно добавить репозиторий/таблицу
+        await _uow.EventAttachments.AddAsync(attachment);
         await _uow.SaveChangesAsync();
     }
 
@@ -144,6 +118,8 @@ public class EventService : IEventService
             throw new KeyNotFoundException("Event not found");
 
         var existing = (await _uow.UserEvents.FindAsync(ue => ue.EventId == eventId && ue.UserId == userId)).FirstOrDefault();
+        var previousStatus = existing?.Status ?? AttendeeStatus.Unknown;
+
         if (existing == null)
         {
             var ue = new UserEvent
@@ -164,6 +140,19 @@ public class EventService : IEventService
             existing.ExcuseNote = excuseNote;
             existing.UpdatedAt = DateTimeOffset.UtcNow;
             _uow.UserEvents.Update(existing);
+        }
+
+        // Планируем уведомления только при переходе в Yes
+        if (status == AttendeeStatus.Yes && previousStatus != AttendeeStatus.Yes)
+        {
+            var model = new NotificationModel<Event>
+            {
+                Notification = ev,
+                TargetUserIds = new List<Guid> { userId }
+            };
+
+            var jsonEvent = JsonConvert.SerializeObject(ev);
+            _scheduleService.ScheduleRemindersForUser(userId.ToString(), jsonEvent, model, ev.StartAt);
         }
 
         await _uow.SaveChangesAsync();

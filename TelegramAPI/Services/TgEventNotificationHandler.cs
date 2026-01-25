@@ -1,33 +1,55 @@
 ﻿using Domain.Entities;
-using Task = System.Threading.Tasks.Task;
-
-namespace Services;
+using Domain.Enums;
+using Domain.GlobalModels;
+using Infrastructure.DAL.Repository.Abstractions;
 
 public class TgEventNotificationHandler
 {
     private readonly TelegramNotificationService _telegram;
-    private readonly HttpClient _httpClient;
+    private readonly IChatRepository _chatRepository;
 
-    public TgEventNotificationHandler(TelegramNotificationService telegram, IHttpClientFactory httpClientFactory)
+    public TgEventNotificationHandler(TelegramNotificationService telegram, IChatRepository chatRepository)
     {
         _telegram = telegram;
-        _httpClient = httpClientFactory.CreateClient();
+        _chatRepository = chatRepository;
     }
 
-    public async Task OnEventCreatedOrUpdated(string title, string type)
+    public async Task OnEventCreatedOrUpdated(NotificationModel<Event> model)
     {
         var internalApiUrl = Environment.GetEnvironmentVariable("API_ADDRESS");
 
-        var chats = await _httpClient.GetFromJsonAsync<List<Chats>>($"{internalApiUrl}/get-chats");
+        var chats = await _chatRepository.GetAll();
 
         if (chats == null)
             return;
 
-        var tasks = chats.Select(async chat =>
+        IEnumerable<Chats> targetChats;
+
+        if (model.TargetUserIds != null && model.TargetUserIds.Any())
         {
+            // Выбираем только те чаты, где UserId совпадает со списком получателей
+            targetChats = chats.Where(c => c.UserId.HasValue && model.TargetUserIds.Contains(c.UserId.Value));
+        }
+        else
+        {
+            // Если список пуст — отправляем всем
+            targetChats = chats;
+        }
+
+        var tasks = targetChats.Select(async chat =>
+        {
+            string eventType = model.Notification!.Type switch
+            {
+                EventType.Event => "событии",
+                EventType.Meeting => "заседании",
+                EventType.Commission => "комиссии",
+                _ => ""
+            };
+
             try
             {
-                await _telegram.SendTelegramAsync(chat.ChatId, $"{type} {title} создано!");
+                await _telegram.SendTelegramAsync(chat.ChatId, 
+                    $"Напоминание о {model.Notification.Type} {model.Notification.Title} - {model.Notification.StartAt.ToString("dd.MM.yyyy HH:mm")}");
             }
             catch (Exception ex)
             {
@@ -37,5 +59,4 @@ public class TgEventNotificationHandler
 
         await Task.WhenAll(tasks);
     }
-
 }
