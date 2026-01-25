@@ -1,9 +1,11 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using Application.Dtos;
 using Application.Services.Abstractions;
 using DeputyApp.DAL.UnitOfWork;
+using Domain.Constants;
 using Domain.Entities;
 using Infrastructure.DAL.Repository.Abstractions;
 using Microsoft.AspNetCore.Http;
@@ -51,10 +53,10 @@ public class AuthService : IAuthService
         params string[] roleNames)
     {
         if (await _uow.Users.ExistsAsync(u => u.Email == email)) throw new InvalidOperationException("User exists");
-        var salt = Guid.NewGuid().ToString();
+        var salt = Convert.ToBase64String(RandomNumberGenerator.GetBytes(16));
         var user = new User
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             Email = email,
             FullName = fullName,
             JobTitle = jobTitle,
@@ -65,21 +67,26 @@ public class AuthService : IAuthService
         };
         await _uow.Users.AddAsync(user);
 
+        var roles = new List<UserRole>();
 
         foreach (var rn in roleNames)
         {
             var role = (await _uow.Roles.ListAsync(r => r.Name == rn)).FirstOrDefault();
+
             if (role == null)
             {
-                role = new Role { Id = Guid.NewGuid(), Name = rn };
+                role = new Role { Id = Guid.CreateVersion7(), Name = rn };
                 await _uow.Roles.AddAsync(role);
             }
 
             user.UserRoles.Add(new UserRole { RoleId = role.Id, UserId = user.Id });
+            roles.Add(new UserRole { Role = role });
         }
 
-
         await _uow.SaveChangesAsync();
+
+        user.UserRoles = roles;
+
         return user;
     }
 

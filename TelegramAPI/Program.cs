@@ -1,8 +1,11 @@
 using System.Diagnostics;
 using System.Reflection;
+using Infrastructure.DAL;
 using Infrastructure.DAL.Repository.Abstractions;
 using Infrastructure.DAL.Repository.Implementations;
+using Infrastructure.Initializers;
 using Microsoft.OpenApi.Models;
+using Shared.Encrypt;
 using Telegram.Bot;
 using Telegram.Bot.Requests;
 using Telegram.Bot.Types.Enums;
@@ -37,6 +40,8 @@ public static class Program
         var conn = config.GetValue<string>("DB_CONNECTION") ??
                    "Host=localhost;Port=5435;Database=deputy;Username=postgres;Password=postgres";
 
+        builder.Services.InitializeDatabase(conn);
+
         var tgChatId = config.GetValue<string>("TELEGRAM_CHAT_ID") ?? "";
 
         builder.Services.AddCors(options =>
@@ -64,6 +69,11 @@ public static class Program
     {
         builder.Services.AddSwaggerGen(options =>
         {
+            options.CustomSchemaIds(type =>
+            {
+                return type.FullName!.Replace("+", ".");
+            });
+
             options.SwaggerDoc("v1", new OpenApiInfo
             {
                 Title = "Deputy API",

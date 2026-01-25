@@ -1,5 +1,4 @@
-﻿using Domain.Entities;
-using Domain.GlobalModels.Abstractions;
+﻿using Domain.GlobalModels.Abstractions;
 
 namespace Domain.GlobalModels
 {

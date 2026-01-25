@@ -9,5 +9,5 @@ public class UpdateUserRequest
     public string JobTitle { get; set; } = string.Empty;
     public string FullName { get; set; } = string.Empty;
     public Guid? DeputyId { get; set; } = null;
-    public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
+    public ICollection<string> UserRoles { get; set; } = new List<string>();
 }
