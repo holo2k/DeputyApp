@@ -64,7 +64,7 @@ services:
       Telegram__WebhookUrl: https://irit-rtf-ep.ru/api/telegram
       INTERNAL_API: http://telegram-api/api/telegram
     ports:
-      - "5002:80"
+      - "6000:80"
     networks:
       - deputy-net
 
@@ -88,7 +88,7 @@ services:
       Telegram__WebhookUrl: https://irit-rtf-ep.ru/api/telegram
       API_ADDRESS: http://deputy-api/api/internal
     ports:
-      - "5001:80"
+      - "7000:80"
     networks:
       - deputy-net
 
