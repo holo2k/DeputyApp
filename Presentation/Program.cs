@@ -1,10 +1,18 @@
+using System.Reflection;
+using System.Security.Claims;
+using System.Text;
+using Application;
 using Application.Notifications;
 using Application.Services;
 using Application.Services.Abstractions;
 using Application.Services.Implementations;
 using Application.Storage;
+using Application.Validators;
 using DeputyApp.DAL.UnitOfWork;
+using Domain.Entities;
 using DotNetEnv;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using Hangfire;
 using Hangfire.PostgreSql;
 using Infrastructure.DAL;
@@ -15,21 +23,14 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Presentation.Hub;
+using Presentation.Middleware;
 using Serilog;
 using Serilog.Events;
 using Shared.Encrypt;
 using Shared.Middleware;
-using System.Reflection;
-using System.Security.Claims;
-using System.Text;
-using Application;
-using Application.Validators;
-using FluentValidation;
-using FluentValidation.AspNetCore;
 using Telegram.Bot;
 using Telegram.Bot.Requests;
 using Telegram.Bot.Types.Enums;
-using Domain.Entities;
 
 
 namespace Presentation;
@@ -52,7 +53,7 @@ public static class Program
 
         await InitializeDatabaseAsync(app);
 
-        await ConfigurePipelineAsync(app); // async init
+        ConfigurePipeline(app); // async init
 
         try
         {
@@ -257,25 +258,35 @@ public static class Program
         await DbContextInitializer.Migrate(appDbContext, hasher);
     }
 
-    private static async Task ConfigurePipelineAsync(WebApplication app)
+    private static void ConfigurePipeline(WebApplication app)
     {
-        app.UseDeveloperExceptionPage();
+        app.UseCors("AllowAll");
+
+        app.UseMiddleware<ExceptionHandlingMiddleware>();
+
+        if (app.Environment.IsDevelopment())
+        {
+            app.UseDeveloperExceptionPage();
+        }
+
         app.UseSwagger();
         app.UseSwaggerUI(c =>
         {
             c.SwaggerEndpoint("/swagger/v1/swagger.json", "Deputy API v1");
             c.RoutePrefix = string.Empty;
         });
-        app.UseCors("AllowAll");
-        app.UseMiddleware<JwtBlacklistMiddleware>();
+
         app.UseHttpsRedirection();
+
         app.UseRouting();
+
         app.UseAuthentication();
+        app.UseMiddleware<JwtBlacklistMiddleware>();
         app.UseAuthorization();
+
         app.UseHangfireDashboard("/hangfire");
+
         app.MapHub<NotificationHub>("/hubs/notifications");
         app.MapControllers();
-
-        var ct = CancellationToken.None;
     }
 }
