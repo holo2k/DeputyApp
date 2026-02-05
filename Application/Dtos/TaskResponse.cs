@@ -5,7 +5,9 @@ namespace Application.Dtos;
 
 public class TaskResponse
 {
+    public Guid TaskId { get; set; }
     public Guid AuthorId { get; set; }
+    public string AuthorName { get; set; } = "Заглушка";
     public string Title { get; set; }
     public string Description { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

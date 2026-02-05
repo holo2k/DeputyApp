@@ -9,6 +9,7 @@ public static class TaskMapper
     {
         return new TaskResponse
         {
+            TaskId = task.Id,
             AuthorId = task.AuthorId,
             Title = task.Title,
             Description = task.Description,
