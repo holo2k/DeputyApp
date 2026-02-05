@@ -126,7 +126,8 @@ public static class DbContextInitializer
         {
             "Создана",
             "В работе",
-            "На согласовании"
+            "На согласовании",
+            "Завершена"
         };
 
         var existing = await context.Statuses
