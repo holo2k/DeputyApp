@@ -1,4 +1,5 @@
-﻿using System.Linq.Expressions;
+﻿using System.Collections;
+using System.Linq.Expressions;
 using Application.Dtos;
 using Application.Mappers;
 using Application.Services.Abstractions;
@@ -80,7 +81,7 @@ public class TaskService : ITaskService
         ]);
         if (!tasks.Any())
         {
-            throw new ArgumentNullException("Список задач пуст");
+            return  Enumerable.Empty<TaskResponse>();
         }
         var models = tasks.Select(x => x.ToTaskResponse(x.Status.Name));
 
