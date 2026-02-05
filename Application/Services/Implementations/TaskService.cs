@@ -54,6 +54,8 @@ public class TaskService : ITaskService
 
     public async Task<TaskResponse> Update(TaskCreateRequest request, Guid taskId)
     {
+        var existingStatus = await statusRepository.GetByNameAsync(request.Status);
+        if(existingStatus is null) throw new Exception($"Status with name {request.Status} was not found");
         var task = await taskRepository.GetByIdAsync(taskId, x => x.Users, x => x.Status);        
         if (task is null) throw new Exception($"Task with id {taskId} was not found");
         var currentUserId =  auth.GetCurrentUserId();
