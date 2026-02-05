@@ -168,7 +168,7 @@ public static class Program
             if (UseWebHook)
             {
                 if (string.IsNullOrEmpty(WebhookUrl))
-                    throw new Exception("WebhookUrl не задан в конфигурации");
+                    throw new ArgumentNullException("WebhookUrl не задан в конфигурации");
 
                 var setReq = new SetWebhookRequest
                 {

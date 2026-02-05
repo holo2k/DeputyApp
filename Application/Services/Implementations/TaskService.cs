@@ -47,7 +47,7 @@ public class TaskService : ITaskService
 
         if (task is null) throw new UnauthorizedAccessException();
         if (currentUser.Roles.All(x=>x != "Admin") || task.AuthorId != currentUser.Id) 
-            throw new Exception($"Permission denied for task with id {task.Id}");        
+            throw new UnauthorizedAccessException($"Permission denied for task with id {task.Id}");        
         uow.Tasks.Delete(task);
         await uow.SaveChangesAsync();
     }
@@ -55,13 +55,13 @@ public class TaskService : ITaskService
     public async Task<TaskResponse> Update(TaskCreateRequest request, Guid taskId)
     {
         var existingStatus = await statusRepository.GetByNameAsync(request.Status);
-        if(existingStatus is null) throw new Exception($"Status with name {request.Status} was not found");
+        if(existingStatus is null) throw new ArgumentNullException($"Status with name {request.Status} was not found");
         var task = await taskRepository.GetByIdAsync(taskId, x => x.Users, x => x.Status);        
-        if (task is null) throw new Exception($"Task with id {taskId} was not found");
+        if (task is null) throw new ArgumentNullException($"Task with id {taskId} was not found");
         var currentUserId =  auth.GetCurrentUserId();
         var currentUserRole = auth.GetCurrentUserRoles();
         if (currentUserRole.All(x=>x != "Admin") || task.AuthorId != currentUserId) 
-            throw new Exception($"Permission denied for task with id {taskId}");
+            throw new UnauthorizedAccessException($"Permission denied for task with id {taskId}");
         
         task.UpdateFrom(request);
         if (task.Status.Name != request.Status)
@@ -98,7 +98,7 @@ public class TaskService : ITaskService
         if (task is null) throw new UnauthorizedAccessException();
         if (currentUser.Roles.All(x=>x != "Admin") || task.AuthorId != currentUser.Id) 
             throw new Exception($"Permission denied for task with id {task.Id}");   
-        return task is null ? throw new Exception($"Task with id {id} was not found") : task.ToTaskResponse(task.Status.Name);
+        return task is null ? throw new ArgumentNullException($"Task with id {id} was not found") : task.ToTaskResponse(task.Status.Name);
     }
     
     public async Task<Guid> SetArchivedStatus(Guid id, bool isArchived)
@@ -106,9 +106,9 @@ public class TaskService : ITaskService
         var currentUser = await auth.GetCurrentUserAsync();
         if (currentUser is null) throw new UnauthorizedAccessException();
         var task = await taskRepository.GetByIdAsync(id, x=>x.Users, x=>x.Status);
-        if (task is null) throw new Exception($"Task with id {id} was not found");
+        if (task is null) throw new ArgumentNullException($"Task with id {id} was not found");
         if (currentUser.Roles.All(x=>x != "Admin") || task.AuthorId != currentUser.Id) 
-            throw new Exception($"Permission denied for task with id {task.Id}");   
+            throw new UnauthorizedAccessException($"Permission denied for task with id {task.Id}");   
         task.IsArchived = isArchived;
         taskRepository.Update(task);
         await uow.SaveChangesAsync();
@@ -119,17 +119,17 @@ public class TaskService : ITaskService
     {
         var task = await taskRepository.GetByIdAsync(taskId, x=>x.Users, x=>x.Status);
         if (task is null) 
-            throw new Exception($"Task with id {taskId} was not found");
+            throw new ArgumentNullException($"Task with id {taskId} was not found");
         
         var author = await auth.GetCurrentUserAsync();
         if (author is null) 
-            throw new Exception($"User with id {userId} was not found");
+            throw new ArgumentNullException($"User with id {userId} was not found");
         
         if (!(author.Roles.All(x=>x != "Admin")) || task.AuthorId != author.Id) 
-            throw new Exception($"Permission denied for item with id {taskId}");
+            throw new UnauthorizedAccessException($"Permission denied for item with id {taskId}");
         
         var user = await userRepository.GetByIdAsync(userId, x=>x.Tasks);
-        if (user is null) throw new Exception($"User with id {userId} was not found");
+        if (user is null) throw new ArgumentNullException($"User with id {userId} was not found");
         task.Users.Add(user);
         taskRepository.Update(task);
         userRepository.Update(user);
@@ -142,7 +142,7 @@ public class TaskService : ITaskService
     {
         var userId = auth.GetCurrentUserId();
         if (userId == Guid.Empty)
-            throw new Exception($"User with id {userId} was not found");
+            throw new UnauthorizedAccessException($"User with id {userId} was not found");
 
         var tasks = await taskRepository.ListAsync(task => 
                 (includeAuthor && task.AuthorId == userId) || (includeAssigned && task.Users.Any(u => u.Id == userId)),
@@ -160,7 +160,7 @@ public class TaskService : ITaskService
     {
         var currentUserRoles = auth.GetCurrentUserRoles();
         if (currentUserRoles.All(x => x != UserRoles.Admin))
-            throw new Exception($"Permission denied for task with id {userId}");
+            throw new UnauthorizedAccessException($"Permission denied for task with id {userId}");
         
         var tasks = await taskRepository.ListAsync(task=>task.AuthorId == userId || task.Users.Any(user=>user.Id == userId), includes:
         [

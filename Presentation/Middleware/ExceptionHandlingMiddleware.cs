@@ -26,18 +26,30 @@ namespace Presentation.Middleware
         private static Task HandleExceptionAsync(HttpContext context, Exception exception)
         {
             context.Response.Clear();
-            context.Response.StatusCode = StatusCodes.Status400BadRequest;
             context.Response.ContentType = "application/json";
+
+            var (statusCode, message) = exception switch
+            {
+                ArgumentNullException ex => (StatusCodes.Status400BadRequest, ex.Message),
+                ArgumentException ex => (StatusCodes.Status400BadRequest, ex.Message),
+                InvalidOperationException ex => (StatusCodes.Status409Conflict, ex.Message),
+                KeyNotFoundException ex => (StatusCodes.Status404NotFound, ex.Message),
+                UnauthorizedAccessException ex => (StatusCodes.Status401Unauthorized, ex.Message),
+                _ => (StatusCodes.Status500InternalServerError, "Internal server error")
+            };
+
+            context.Response.StatusCode = statusCode;
 
             var response = new ErrorResponse
             {
-                Message = exception.Message
+                Message = message
             };
 
             return context.Response.WriteAsync(
                 JsonSerializer.Serialize(response)
             );
         }
+
 
         private sealed class ErrorResponse
         {

@@ -170,7 +170,7 @@ public static class Program
             {
                 var jwtKey = Environment.GetEnvironmentVariable("JWT_KEY");
                 if (string.IsNullOrEmpty(jwtKey))
-                    throw new Exception("JWT_KEY не задан");
+                    throw new ArgumentNullException("JWT_KEY не задан");
 
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
