@@ -1,4 +1,5 @@
-﻿using Domain.Entities;
+﻿using Domain.Constants;
+using Domain.Entities;
 using Infrastructure.DAL;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -68,7 +69,7 @@ public static class DbContextInitializer
         AppDbContext context,
         IPasswordHasher passwordHasher)
     {
-        const string adminRoleName = "Admin";
+        const string adminRoleName = UserRoles.Admin;
         const string adminEmail = "admin@admin.ru";
 
         var adminRole = await context.Roles
