@@ -68,8 +68,8 @@ public class DocumentsController : ControllerBase
 
         if (!((ownerId == null && roles.Contains(UserRoles.Deputy)) // Пользователь - депутат, загружает в публичные каталоги (для публичных ownerId = null)
               || ownerId == user.Id // Загружает в свой каталог
-              || (roles.Contains(UserRoles.Helper) && user.Deputy!.Id == ownerId))
-              || roles.Contains(UserRoles.Admin)) // Пользователь - помощник, загружает в каталог депутата
+              || (roles.Contains(UserRoles.Helper) && user.Deputy!.Id == ownerId)) // Пользователь - помощник, загружает в каталог депутата
+              || roles.Contains(UserRoles.Admin)) // Пользователь - админ
             return Forbid();
 
         if (file == null || file.Length == 0)
