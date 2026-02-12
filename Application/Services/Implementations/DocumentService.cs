@@ -19,9 +19,9 @@ public class DocumentService : IDocumentService
         _uow = uow;
     }
 
-    public async Task<Document?> GetByFileNameAsync(string fileName)
+    public async Task<DocumentDto?> GetByFileNameAsync(string fileName)
     {
-        return await _uow.Documents.GetByFileName(fileName);
+        return (await _uow.Documents.GetByFileName(fileName)).ToDto();
     }
 
     public async Task DeleteAsync(Guid id)
@@ -34,7 +34,7 @@ public class DocumentService : IDocumentService
     }
 
 
-    public async Task<Document> UploadAsync(
+    public async Task<DocumentDto> UploadAsync(
         string fileName,
         Stream content,
         string contentType,
@@ -75,10 +75,10 @@ public class DocumentService : IDocumentService
 
         await _uow.Documents.AddAsync(doc);
         await _uow.SaveChangesAsync();
-        return doc;
+        return doc.ToDto();
     }
 
-    public async Task<Document?> UpdateStatusAsync(Guid documentId, DocumentStatus newStatus)
+    public async Task<DocumentDto?> UpdateStatusAsync(Guid documentId, DocumentStatus newStatus)
     {
         var doc = await _uow.Documents.GetByIdAsync(documentId);
         if (doc is null)
@@ -88,11 +88,11 @@ public class DocumentService : IDocumentService
         _uow.Documents.Update(doc);
         await _uow.SaveChangesAsync();
 
-        return doc;
+        return doc.ToDto();
     }
 
-    public async Task<IEnumerable<Document>> GetByCatalogAsync(Guid catalogId)
+    public async Task<IEnumerable<DocumentDto>> GetByCatalogAsync(Guid catalogId)
     {
-        return await _uow.Documents.GetByCatalogAsync(catalogId);
+        return (await _uow.Documents.GetByCatalogAsync(catalogId)).Select(x=>x.ToDto());
     }
 }
