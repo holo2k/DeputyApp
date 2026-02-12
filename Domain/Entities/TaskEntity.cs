@@ -1,10 +1,16 @@
-﻿namespace Domain.Entities;
+﻿using System.Text.Json.Serialization;
+
+namespace Domain.Entities;
 
 public class TaskEntity
 {
     public Guid Id { get; set; }
     public Guid StatusId { get; set; }
     public Guid AuthorId { get; set; }
+    
+    [JsonIgnore]
+    public User Author { get; set; }
+    
     public string Title { get; set; }
     public string Description { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
