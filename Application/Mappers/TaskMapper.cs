@@ -11,7 +11,7 @@ public static class TaskMapper
         {
             TaskId = task.Id,
             AuthorId = task.AuthorId,
-            AuthorName = task.Author.FullName,
+            AuthorName = task.AuthorName.FullName,
             Title = task.Title,
             Description = task.Description,
             CreatedAt = task.CreatedAt,

@@ -27,7 +27,7 @@ public class TaskEntity : INotifiable
     public string TelegramEndpoint => "send-notify-task";
 
     [NotMapped]
-    public string Author => Users?
+    public string AuthorName => Users?
      .Where(x => x.Id == AuthorId)
      .Select(x => x.FullName)
      .FirstOrDefault() ?? "Unknown";
