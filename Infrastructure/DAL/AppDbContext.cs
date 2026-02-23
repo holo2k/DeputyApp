@@ -129,7 +129,6 @@ public class AppDbContext : DbContext
             b.HasOne(t => t.Status)
                 .WithMany(s => s.TaskEntities)
                 .HasForeignKey(t => t.StatusId);
-            
         });
 
         modelBuilder.Entity<Status>(b =>

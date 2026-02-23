@@ -9,10 +9,6 @@ public class TaskEntity : INotifiable
     public Guid Id { get; set; }
     public Guid StatusId { get; set; }
     public Guid AuthorId { get; set; }
-    
-    [JsonIgnore]
-    public User Author { get; set; }
-    
     public string Title { get; set; }
     public string Description { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -29,4 +25,10 @@ public class TaskEntity : INotifiable
     /// </summary>
     [NotMapped]
     public string TelegramEndpoint => "send-notify-task";
+
+    [NotMapped]
+    public string Author => Users?
+     .Where(x => x.Id == AuthorId)
+     .Select(x => x.FullName)
+     .FirstOrDefault() ?? "Unknown";
 }

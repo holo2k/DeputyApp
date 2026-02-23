@@ -40,7 +40,15 @@ public class TaskService : ITaskService
         var status = await statusRepository.GetByNameAsync(request.Status.ToLower());
         ArgumentNullException.ThrowIfNull(status, "Такого статуса не существует");
         var entity = request.ToTaskEntity(currentUserId, status.Id);
+        var user = await userRepository.GetByIdAsync(currentUserId);
         entity.AuthorId = currentUserId;
+
+        if (user is not null)
+        {
+            entity.Users.Add(user);
+            user.Tasks.Add(entity);
+        }
+
         await taskRepository.AddAsync(entity);
         await uow.SaveChangesAsync();
 

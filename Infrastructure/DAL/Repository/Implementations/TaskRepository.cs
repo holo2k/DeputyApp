@@ -10,7 +10,6 @@ public class TaskRepository(AppDbContext context) : GenericRepository<TaskEntity
     {
         return await Set.AsNoTracking()
             .Where(t => t.Id == taskId)
-            .Include(t => t.Author)
             .Include(t => t.Status)
             .Include(t => t.Users)
             .FirstOrDefaultAsync();
