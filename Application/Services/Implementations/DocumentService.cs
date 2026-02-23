@@ -21,7 +21,8 @@ public class DocumentService : IDocumentService
 
     public async Task<DocumentDto?> GetByFileNameAsync(string fileName)
     {
-        return (await _uow.Documents.GetByFileName(fileName)).ToDto();
+        var doc = await _uow.Documents.GetByFileName(fileName);
+        return doc is null ? null : doc.ToDto();
     }
 
     public async Task DeleteAsync(Guid id)

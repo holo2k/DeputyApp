@@ -17,7 +17,6 @@ public class MinioFileStorage
         _client = new MinioClient()
             .WithEndpoint(options.Endpoint)
             .WithCredentials(options.AccessKey, options.SecretKey)
-            .WithSSL(options.Secure)
             .Build();
     }
 
@@ -66,7 +65,8 @@ public class MinioFileStorage
                 .WithBucket(_bucket)
                 .WithObject(fileName)
                 .WithExpiry((int)validFor.TotalSeconds));
-            return presigned;
+
+            return presigned; //TODO что то придумать получше
         }
         catch (Exception ex)
         {
