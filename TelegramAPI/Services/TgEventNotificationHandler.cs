@@ -59,4 +59,41 @@ public class TgEventNotificationHandler
 
         await Task.WhenAll(tasks);
     }
+
+    public async Task OnEventCreatedOrUpdated(NotificationModel<TaskEntity> model)
+    {
+        var internalApiUrl = Environment.GetEnvironmentVariable("API_ADDRESS");
+
+        var chats = await _chatRepository.GetAll();
+
+        if (chats == null)
+            return;
+
+        IEnumerable<Chats> targetChats;
+
+        if (model.TargetUserIds != null && model.TargetUserIds.Any())
+        {
+            // Выбираем только те чаты, где UserId совпадает со списком получателей
+            targetChats = chats.Where(c => c.UserId.HasValue && model.TargetUserIds.Contains(c.UserId.Value));
+        }
+        else
+        {
+            return;
+        }
+
+        var tasks = targetChats.Select(async chat =>
+        {
+            try
+            {
+                await _telegram.SendTelegramAsync(chat.ChatId,
+                    $"Напоминание о скором завершении срока исполнения задачи {model.Notification.Title}!");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Ошибка при отправке пользователю {chat.ChatId}: {ex.Message}");
+            }
+        });
+
+        await Task.WhenAll(tasks);
+    }
 }

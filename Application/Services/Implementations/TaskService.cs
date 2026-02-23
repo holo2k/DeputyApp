@@ -1,11 +1,13 @@
 ﻿using System.Collections;
 using System.Linq.Expressions;
+using System.Text.Json;
 using Application.Dtos;
 using Application.Mappers;
 using Application.Services.Abstractions;
 using DeputyApp.DAL.UnitOfWork;
 using Domain.Constants;
 using Domain.Entities;
+using Domain.GlobalModels;
 using Infrastructure.DAL.Repository.Abstractions;
 
 namespace Application.Services.Implementations;
@@ -17,9 +19,11 @@ public class TaskService : ITaskService
     private readonly IStatusRepository statusRepository;
     private readonly IAuthService auth;
     private readonly IUnitOfWork uow;
+    private readonly IScheduleService<TaskEntity> scheduleService;
 
-    public TaskService(IAuthService auth, IUnitOfWork uow)
+    public TaskService(IAuthService auth, IUnitOfWork uow, IScheduleService<TaskEntity> scheduleService)
     {
+        this.scheduleService = scheduleService;
         this.auth = auth ?? throw new ArgumentNullException(nameof(auth));
         taskRepository = uow?.Tasks ?? throw new ArgumentNullException(nameof(uow.Tasks));
         userRepository = uow?.Users ?? throw new ArgumentNullException(nameof(uow.Users));
@@ -35,6 +39,16 @@ public class TaskService : ITaskService
         entity.AuthorId = currentUserId;
         await taskRepository.AddAsync(entity);
         await uow.SaveChangesAsync();
+
+        var jsonTask = JsonSerializer.Serialize(entity);
+        var notificationModel = new NotificationModel<TaskEntity>()
+        {
+            Notification = entity,
+            TargetUserIds = new List<Guid> { currentUserId }
+        };
+        
+        scheduleService.ScheduleRemindersForUser(
+            currentUserId.ToString(), jsonTask, notificationModel, startAt: entity.ExpectedEndDate);
 
         return entity.Id;
     }

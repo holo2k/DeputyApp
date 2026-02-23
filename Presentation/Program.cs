@@ -119,6 +119,7 @@ public static class Program
         builder.Services.AddScoped<ICatalogRepository, CatalogRepository>();
         builder.Services.AddScoped<IPhoneNotificationService, PhoneNotificationService>();
         builder.Services.AddScoped<IScheduleService<Event>, ScheduleService<Event>>();
+        builder.Services.AddScoped<IScheduleService<TaskEntity>, ScheduleService<TaskEntity>>();
 
         builder.Services.AddSingleton<IBlackListService, BlackListService>();
         builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();

@@ -32,20 +32,20 @@ public class ScheduleService<T> : IScheduleService<T> where T : INotifiable
     public void ScheduleRemindersForAll(string jsonEvent, NotificationModel<T> model, DateTimeOffset startAt)
     {
         // телефон
-        ScheduleDelayedNotification(() => _phoneNotificationService.SendToAllAsync(jsonEvent), startAt.AddDays(-1));
+        ScheduleDelayedNotification(() => _phoneNotificationService.SendToAllAsync(jsonEvent), startAt.AddDays(-3));
         ScheduleDelayedNotification(() => _phoneNotificationService.SendToAllAsync(jsonEvent), startAt.AddHours(-1));
         // телеграм
-        ScheduleDelayedNotification(() => SendTelegram(model), startAt.AddDays(-1));
+        ScheduleDelayedNotification(() => SendTelegram(model), startAt.AddDays(-3));
         ScheduleDelayedNotification(() => SendTelegram(model), startAt.AddHours(-1));
     }
 
     // Планируем напоминания для конкретного пользователя
     public void ScheduleRemindersForUser(string userId, string jsonEvent, NotificationModel<T> model, DateTimeOffset startAt)
     {
-        ScheduleDelayedNotification(() => _phoneNotificationService.SendToUserAsync(userId, jsonEvent), startAt.AddDays(-1));
+        ScheduleDelayedNotification(() => _phoneNotificationService.SendToUserAsync(userId, jsonEvent), startAt.AddDays(-3));
         ScheduleDelayedNotification(() => _phoneNotificationService.SendToUserAsync(userId, jsonEvent), startAt.AddHours(-1));
 
-        ScheduleDelayedNotification(() => SendTelegram(model), startAt.AddDays(-1));
+        ScheduleDelayedNotification(() => SendTelegram(model), startAt.AddDays(-3));
         ScheduleDelayedNotification(() => SendTelegram(model), startAt.AddHours(-1));
     }
 

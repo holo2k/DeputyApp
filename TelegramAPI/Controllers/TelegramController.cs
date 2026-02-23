@@ -40,6 +40,14 @@ public class TelegramController : ControllerBase
         return Ok();
     }
 
+    [HttpPost("send-notify-task")]
+    public async Task<IActionResult> OnTaskCreatedOrUpdated([FromBody] NotificationModel<TaskEntity> model)
+    {
+        await _tgNotificationHandler.OnEventCreatedOrUpdated(model);
+
+        return Ok();
+    }
+
     [HttpPost("send-message")]
     public async Task<IActionResult> OnMessageSended([FromBody] DefaultMessageModel model)
     {

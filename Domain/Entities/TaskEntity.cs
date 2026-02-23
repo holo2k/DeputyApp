@@ -1,8 +1,10 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
+using Domain.GlobalModels.Abstractions;
 
 namespace Domain.Entities;
 
-public class TaskEntity
+public class TaskEntity : INotifiable
 {
     public Guid Id { get; set; }
     public Guid StatusId { get; set; }
@@ -21,4 +23,10 @@ public class TaskEntity
     public bool IsArchived { get; set; }
     public ICollection<User> Users { get; set; } = new List<User>();
     public virtual Status Status { get; set; }
+
+    /// <summary>
+    /// Endpoint для уведомления в телеграм
+    /// </summary>
+    [NotMapped]
+    public string TelegramEndpoint => "send-notify-task";
 }
