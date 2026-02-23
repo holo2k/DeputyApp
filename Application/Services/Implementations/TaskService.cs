@@ -8,7 +8,9 @@ using DeputyApp.DAL.UnitOfWork;
 using Domain.Constants;
 using Domain.Entities;
 using Domain.GlobalModels;
+using Hangfire;
 using Infrastructure.DAL.Repository.Abstractions;
+using Minio.DataModel.Notification;
 
 namespace Application.Services.Implementations;
 
@@ -20,8 +22,9 @@ public class TaskService : ITaskService
     private readonly IAuthService auth;
     private readonly IUnitOfWork uow;
     private readonly IScheduleService<TaskEntity> scheduleService;
+    private readonly IPhoneNotificationService phoneNotificationService;
 
-    public TaskService(IAuthService auth, IUnitOfWork uow, IScheduleService<TaskEntity> scheduleService)
+    public TaskService(IAuthService auth, IUnitOfWork uow, IScheduleService<TaskEntity> scheduleService, IPhoneNotificationService phoneNotificationService)
     {
         this.scheduleService = scheduleService;
         this.auth = auth ?? throw new ArgumentNullException(nameof(auth));
@@ -29,6 +32,7 @@ public class TaskService : ITaskService
         userRepository = uow?.Users ?? throw new ArgumentNullException(nameof(uow.Users));
         statusRepository = uow?.Statuses ?? throw new ArgumentNullException(nameof(uow.Statuses));
         this.uow  = uow ?? throw new ArgumentNullException(nameof(uow));
+        this.phoneNotificationService = phoneNotificationService;
     }
     public async Task<Guid> CreateAsync(TaskCreateRequest request)
     {
@@ -39,16 +43,6 @@ public class TaskService : ITaskService
         entity.AuthorId = currentUserId;
         await taskRepository.AddAsync(entity);
         await uow.SaveChangesAsync();
-
-        var jsonTask = JsonSerializer.Serialize(entity);
-        var notificationModel = new NotificationModel<TaskEntity>()
-        {
-            Notification = entity,
-            TargetUserIds = new List<Guid> { currentUserId }
-        };
-        
-        scheduleService.ScheduleRemindersForUser(
-            currentUserId.ToString(), jsonTask, notificationModel, startAt: entity.ExpectedEndDate);
 
         return entity.Id;
     }
@@ -148,6 +142,19 @@ public class TaskService : ITaskService
         taskRepository.Update(task);
         userRepository.Update(user);
         await uow.SaveChangesAsync();
+
+        var jsonTask = JsonSerializer.Serialize(task);
+        var notificationModel = new NotificationModel<TaskEntity>()
+        {
+            Notification = task,
+            TargetUserIds = new List<Guid> { userId }
+        };
+
+        BackgroundJob.Enqueue(() => phoneNotificationService.SendToUserAsync(userId.ToString()!, jsonTask));
+        BackgroundJob.Enqueue(() => scheduleService.SendTelegram(notificationModel));
+
+        scheduleService.ScheduleRemindersForUser(
+            userId.ToString(), jsonTask, notificationModel, startAt: task.ExpectedEndDate);
 
         return task.Id;
     }
