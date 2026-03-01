@@ -61,6 +61,13 @@ public class TaskController(ITaskService taskService) : ControllerBase
     {
         return Ok(await taskService.AddUserAsync(userId, taskId));
     }
+    
+    [HttpPost("remove-user-task/{taskId}")]
+    [Authorize]
+    public async Task<IActionResult> RemoveUserFromTask(Guid taskId, [FromQuery] Guid userId)
+    {
+        return Ok(await taskService.RemoveUserAsync(userId, taskId));
+    }
 
     [HttpGet("get-tasks-by-current-user")]
     [Authorize]

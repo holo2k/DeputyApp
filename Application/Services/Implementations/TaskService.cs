@@ -28,16 +28,17 @@ public class TaskService : ITaskService
     {
         this.scheduleService = scheduleService;
         this.auth = auth ?? throw new ArgumentNullException(nameof(auth));
-        taskRepository = uow?.Tasks ?? throw new ArgumentNullException(nameof(uow.Tasks));
-        userRepository = uow?.Users ?? throw new ArgumentNullException(nameof(uow.Users));
-        statusRepository = uow?.Statuses ?? throw new ArgumentNullException(nameof(uow.Statuses));
+        taskRepository = uow.Tasks ?? throw new ArgumentNullException(nameof(uow.Tasks));
+        userRepository = uow.Users ?? throw new ArgumentNullException(nameof(uow.Users));
+        statusRepository = uow.Statuses ?? throw new ArgumentNullException(nameof(uow.Statuses));
         this.uow  = uow ?? throw new ArgumentNullException(nameof(uow));
         this.phoneNotificationService = phoneNotificationService;
     }
     public async Task<Guid> CreateAsync(TaskCreateRequest request)
     {
         var currentUserId = auth.GetCurrentUserId();
-        var status = await statusRepository.GetByNameAsync(request.Status.ToLower());
+        var statusName = request.Status ?? DefaultStatusMapper.ToString(DefaultStatuses.Created);
+        var status = await statusRepository.GetByNameAsync(statusName);
         ArgumentNullException.ThrowIfNull(status, "Такого статуса не существует");
         var entity = request.ToTaskEntity(currentUserId, status.Id);
         var user = await userRepository.GetByIdAsync(currentUserId);
@@ -198,6 +199,37 @@ public class TaskService : ITaskService
         ]);
 
         return tasks.Select(x=>x.ToTaskResponse(x.Status.Name)).ToList();
+    }
+    
+    public async Task<Guid> RemoveUserAsync(Guid taskId, Guid userId)
+    {
+        var currentUser = await auth.GetCurrentUserAsync();
+        if (currentUser == null)
+            throw new UnauthorizedAccessException();
+
+        var task = await taskRepository.GetByIdAsync(taskId, x => x.Users, x => x.Status);
+        if (task == null)
+            throw new ArgumentNullException($"Задача с Id {taskId} не найдена");
+
+        var userToRemove = task.Users.FirstOrDefault(u => u.Id == userId);
+        if (userToRemove == null)
+            throw new InvalidOperationException($"Пользователь с Id {userId} не назначен на задачу");
+        
+        var isAdmin = currentUser.Roles.Contains(UserRoles.Admin);
+        var isAuthor = task.AuthorId == currentUser.Id;
+        var removingSelf = currentUser.Id == userId;
+
+        if (!(isAdmin || isAuthor || removingSelf))
+            throw new UnauthorizedAccessException("У вас нет прав снимать пользователя с этой задачи.");
+
+        task.Users.Remove(userToRemove);
+        taskRepository.Update(task);
+        await uow.SaveChangesAsync();
+
+        BackgroundJob.Enqueue(() => phoneNotificationService.SendToUserAsync(
+            userToRemove.Id.ToString(), $"Вы были удалены из задачи: {task.Title}"));
+
+        return task.Id;
     }
 
     public Task<IEnumerable<TaskResponse>> GetAssignedTasks()

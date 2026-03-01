@@ -15,4 +15,5 @@ public interface ITaskService
     Task<TaskResponse> Update(TaskCreateRequest request, Guid taskId);
     Task<IEnumerable<TaskResponse>> GetAssignedTasks();
     Task<IEnumerable<TaskResponse>> GetAuthorTasks();
+    Task<Guid> RemoveUserAsync(Guid taskId, Guid userId);
 }

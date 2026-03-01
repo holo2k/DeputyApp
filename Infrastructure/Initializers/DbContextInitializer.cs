@@ -141,7 +141,7 @@ public static class DbContextInitializer
             .Where(name => !existingSet.Contains(name))
             .Select(name => new Status
             {
-                IsDefault = false,
+                IsDefault = true,
                 Name = name,
                 TaskEntities = new List<TaskEntity>()
             });

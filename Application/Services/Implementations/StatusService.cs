@@ -2,7 +2,6 @@
 using Application.Mappers;
 using Application.Services.Abstractions;
 using DeputyApp.DAL.UnitOfWork;
-using Domain.Entities;
 using Infrastructure.DAL.Repository.Abstractions;
 
 namespace Application.Services.Implementations;
@@ -71,15 +70,14 @@ public class StatusService : IStatusService
         if (newStatus is null)
             throw new ArgumentNullException(nameof(status), "Статус с таким идентификатором не найден.");
 
-        if (!newStatus.IsDefault)
-            throw new ArgumentException("Статус не является стандартным");
-
-        if (status.TaskEntities.Count != 0)
+        if (newStatus.IsDefault)
+            throw new ArgumentException("Статус является стандартным");
+        
+        if (status.TaskEntities.Any())
         {
-            foreach (var taskEntity in status.TaskEntities)
+            foreach (var task in status.TaskEntities)
             {
-                taskEntity.StatusId = status.Id;
-                _taskRepository.Update(taskEntity);
+                task.Status = await _statusRepository.GetDefaultStatus();
             }
         }
 

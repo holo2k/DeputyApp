@@ -159,4 +159,21 @@ public class AppDbContext : DbContext
             b.Property(ue => ue.Status).HasConversion<int>().IsRequired();
         });
     }
+    
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        foreach (var entry in ChangeTracker.Entries<Status>())
+        {
+            if (entry.State == EntityState.Modified && entry.OriginalValues.GetValue<bool>("IsDefault"))
+            {
+                throw new InvalidOperationException("Нельзя изменять дефолтные статусы.");
+            }
+            if (entry.State == EntityState.Deleted && entry.OriginalValues.GetValue<bool>("IsDefault"))
+            {
+                throw new InvalidOperationException("Нельзя удалять дефолтные статусы.");
+            }
+        }
+
+        return base.SaveChangesAsync(cancellationToken);
+    }
 }
